@@ -1,0 +1,10 @@
+name: cc
+channels:
+  - conda-forge
+dependencies:
+  - lua-luaposix
+  - python>=3.6
+  - curl
+  - pip
+  - pip:
+    - nvchecker
