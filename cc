@@ -48,12 +48,12 @@ subshell = lambda x: '. %s && %s'%(
 # special printing happens before imports
 prepare_print()
 
-def write_config(config):
+def write_config(config,config_fn):
     #! do we need a lock system here? probably not
-    with open(config_fn) as fp:
+    with open(config_fn,'w') as fp:
         json.dump(config,fp)
 
-def read_config():
+def read_config(config_fn):
     with open(config_fn,'r') as fp: 
         result = json.load(fp)
     return result
@@ -90,10 +90,18 @@ rm -rf $tmpdir
 %{'miniconda_path':dependency_pathfinder(specs['miniconda'])}
 ).strip().splitlines()
 
+def register(function,**kwargs):
+    """
+    Register an action in the configuration.
+    """
+    print('warning DEV registering ... ')
+
 class Installer:
+    #@register
     def miniconda(self):
         for command in bootstrap_miniconda:
             bash(command)
+    #@register
     def conda_env(self):
         #! test environment
         spec_fn = 'env_test.yaml'
@@ -102,6 +110,8 @@ class Installer:
         bash(subshell('conda env create --file %s'%spec_fn))
 
 class Detector:
+    def __init__(self,config_fn):
+        self.config_fn = config_fn
     def conda(self):
         if not command_check(subshell('conda')):
             #! add auto-conda installation here
@@ -121,7 +131,7 @@ class Detector:
             print('status building the environment')
             Installer().conda_env()
             #! save results to the config?
-            write_config({'conda_env':conda_env_path})
+            write_config({'conda_env':conda_env_path},config_fn=self.config_fn)
             print('status done building the environment')
         else: print('status found conda environment: %s'%specs['envname'])
 
@@ -139,7 +149,7 @@ class CCInterface:
         kwargs.pop('command')
         if kwargs: raise Exception('unprocessed kwargs: %s'%kwargs)
         print('status community collections bootstrap')
-        detect = Detector()
+        detect = Detector(config_fn=self.config_fn)
         detect.conda()
         print('status done bootstrap')
 
