@@ -9,12 +9,12 @@ Execution logic for CC.
 Handles the transformation of settings files (the YAML file) to actions.
 """
 
-import stdtools
-from stdtools import Handler
-from statetools import Convey
+from . import stdtools
+from .stdtools import Handler
+from .statetools import Convey
 from .installers import Singularity
-from settings import write_user_yaml
-from settings import cc_user
+from .misc import write_user_yaml
+from .settings import cc_user
 
 class Preliminary(Handler):
     """Clean up the user settings. Runs before Execute."""

@@ -8,25 +8,30 @@ import os
 import json
 import tempfile
 
-from stdtools import Handler
-from stdtools import command_check
-from stdtools import bash
+from . import stdtools
+from .stdtools import Handler
+from .stdtools import command_check
+from .stdtools import bash
 
-from settings import subshell
-from settings import specs
-from settings import dependency_pathfinder
-from settings import conda_spec
+from .settings import specs
+from .settings import conda_spec
+from .misc import subshell
+from .misc import dependency_pathfinder
+
 
 bootstrap_miniconda = ("""
-tmpdir=$(mktemp)
+#!/bin/bash
+set -e
+tmpdir=$(mktemp -d)
 here=$(pwd)
 cd $tmpdir
-wget -N https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p %(miniconda_path)s -u
 rm -rf $tmpdir
 """
 # custom paths added here
-%{'miniconda_path':dependency_pathfinder(specs['miniconda'])}
+%{'miniconda_path':os.path.realpath(
+    os.path.expanduser(dependency_pathfinder(specs['miniconda'])))}
 ).strip()
 
 class CCStack:
@@ -59,7 +64,7 @@ class CCStack:
         else: print('status found conda environment: %s'%specs['envname'])
     def miniconda(self):
         """
-        Install miniconda from a mktemp using a temporary script.
+        Install miniconda from a temporary directory using a script.
         """
         with tempfile.NamedTemporaryFile(delete=False) as fp:
             fp.write(bootstrap_miniconda)

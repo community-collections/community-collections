@@ -14,9 +14,10 @@ import time
 import datetime
 import copy
 
-from stdtools import introspect_function
-from stdtools import str_types
-from stdtools import tracebacker
+from . import stdtools
+from .stdtools import introspect_function
+from .stdtools import str_types
+from .stdtools import tracebacker
 
 class Singleton(type):
     # via https://stackoverflow.com/a/42239713
