@@ -71,10 +71,12 @@ class UseCase(Handler):
         bashrc_subs = dict(root=lmod.root,
             modulefiles=modulefiles_dn)
         self.cache['yaml']['bashrc'] = {'instructions':(
-            'Add the items in the "mods" dict in the bashrc dictionary to '
-            'your ~/.bashrc file in order to use community collections. '
-            'Be sure to remove leading hyphens (due to yaml). '
-            'Source that file or log out and log back in to continue.'),
+            'Run ./cc deploy_bashrc to add modules to your environment '
+            'automatically. Alternately, you can dd the items in the "mods" '
+            'list in the bashrc dictionary to '
+            'your ~/.bashrc file (be sure to remove yaml syntax). '
+            'Run `source ~/.bashrc` log back in to continue. '
+            'Either way, this step will make the `module` command available. '),
             'mods':[i%bashrc_subs for i in self.BASHRC_MODS]}
         # save the case for later
         self.cache['case'] = {
