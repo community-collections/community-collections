@@ -15,15 +15,13 @@ if [[ ! -f $PYENV ]]; then PYENV=python; fi
 
 # run within the full anaconda environment
 if [[ "$1" == "envrun" ]]; then
-   . miniconda/etc/profile.d/conda.sh
+   source miniconda/etc/profile.d/conda.sh
    conda activate community-collections
-   shift
-   exec $@
+   ${@:2}
 # run something in the anaconda bin (faster than envrun)
 elif [[ "$1" == "run" ]]; then
    PATH=$MINICONDA_PATH/envs/$CC_ENV_NAME/bin:$PATH
-   shift
-   exec $@
+   ${@:2}
 # standard interface
 else 
   $PYENV -B interface.py $@

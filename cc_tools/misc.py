@@ -2,9 +2,12 @@
 
 import os,sys
 import copy
+import tempfile
 from .settings import cc_user
 from .settings import specs
 from .settings import default_bootstrap
+from .stdtools import bash
+from .stdtools import tracebacker
 
 def kickstart_yaml():
     """Start with the default user settings if absent."""
@@ -57,3 +60,19 @@ def enforce_env():
         raise Exception(('The python executable (%s) is not located '
             'in a miniconda which probably means you need to '
             'kickstart with: ./cc bootstrap')%sys.executable)
+    else: return os.path.sep.join([miniconda_root,'envs',specs['envname']])
+
+def shell_script(script,subshell=None,bin='bash'):
+    """Run an anonymous bash script."""
+    if not subshell: subshell = lambda x:x
+    out = script.strip()
+    print('status executing the following script')
+    print('\n'.join(['| '+i for i in out.splitlines()]))
+    with tempfile.NamedTemporaryFile(delete=False) as fp:
+        fp.write(out.encode())
+        fp.close()
+    try: bash(subshell('%s %s'%(bin,fp.name)))
+    except Exception as e: 
+        tracebacker(e)
+        return False
+    else: return True

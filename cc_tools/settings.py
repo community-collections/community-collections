@@ -9,8 +9,10 @@ cc_user = 'cc.yaml'
 
 conda_name = 'community-collections'
 specs = {
+    # hardcoded by the cc wrapper for speed
     'miniconda':'./miniconda',
     'conda_activator':'etc/profile.d/conda.sh',
+    # hardcoded by the cc wrapper for speed
     'envname':'community-collections'}
 
 # conda dependencies for CC
@@ -27,8 +29,6 @@ dependencies:
     - ipdb
 """%specs['envname']
 
-### COMMUNITY COLLECTIONS DEFAULTS
-
 default_bootstrap = """
 whitelist:
   julia: versionless
@@ -41,5 +41,4 @@ default_full = {
     #'checkup':'careful',
     #'singularity_default_cache':'/where/to/cache',
     #! previously Singularity.NEEDS_PATH
-    'singularity':{'path':'NEEDS_SINGULARITY_PATH'},
-    }
+    'singularity':{'path':'NEEDS_SINGULARITY_PATH'},}

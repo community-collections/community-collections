@@ -612,3 +612,12 @@ def debugger(*args):
 		print('status','received KeyboardInterrupt')
 		debug = False
 	return tracebacker(*args,debug=debug)
+
+### MISC
+
+def confirm(*msgs,sure=False):
+	"""Check with the user."""
+	return sure or all(
+		re.match('^(y|Y)',(input if sys.version_info>(3,0) else raw_input)
+		('[QUESTION] %s (y/N)? '%msg))!=None for msg in msgs)
+
