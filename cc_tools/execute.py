@@ -58,7 +58,7 @@ class UseCase(Handler):
         has_singularity_error = self.cache.get('singularity_error',False)
         has_lmod_error = self.cache.get('lmod_error',False)
         if (has_singularity_error or has_lmod_error): 
-            write_user_yaml(self.cache['yaml'])    
+            write_user_yaml(self.cache['settings'])
             raise Exception(('Caught errors. Edit %s to continue.')%cc_user)
         # check the modulefiles location
         modulefiles_dn = os.path.realpath(os.path.expanduser(lmod.modulefiles))
@@ -70,7 +70,7 @@ class UseCase(Handler):
         #! need a standardized way of reporting what needs to be added to shells
         bashrc_subs = dict(root=lmod.root,
             modulefiles=modulefiles_dn)
-        self.cache['yaml']['bashrc'] = {'instructions':(
+        self.cache['settings']['bashrc'] = {'instructions':(
             'Run ./cc deploy_bashrc to add modules to your environment '
             'automatically. Alternately, you can dd the items in the "mods" '
             'list in the bashrc dictionary to '
@@ -84,7 +84,7 @@ class UseCase(Handler):
             'lmod':lmod.root,
             'modulefiles':modulefiles_dn}
         # rewrite the settings here since the installer classes modify them
-        write_user_yaml(self.cache['yaml'])
+        write_user_yaml(self.cache['settings'])
         # pass the arguments through
         return kwargs
 

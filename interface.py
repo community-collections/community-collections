@@ -34,9 +34,11 @@ from cc_tools.misc import kickstart_yaml
 from cc_tools.misc import settings_resolver
 from cc_tools.misc import enforce_env
 from cc_tools.misc import write_user_yaml
+from cc_tools.misc import cache_closer
 
 # manage the state
-state = StateDict()
+global_debug = False #! testing only
+state = StateDict(debug=global_debug)
 
 # send the state to the classes
 Execute = Convey(state=state)(Execute)
@@ -46,7 +48,8 @@ UseCase = Convey(state=state)(UseCase)
 @Cacher(
     # the interface uses the cache
     cache_fn='cache.json',
-    cache=state)
+    cache=state,
+    closer=cache_closer)
 
 class Interface(Parser):
     """
@@ -57,10 +60,10 @@ class Interface(Parser):
         with open(cc_user) as fp: 
             raw = yaml.load(fp,Loader=yaml.SafeLoader)
         # save the raw yaml
-        self.cache['yaml_raw'] = raw
+        self.cache['settings_raw'] = raw
         # resolve the yaml with defaults if they are missing
         settings = settings_resolver(raw)
-        self.cache['yaml'] = settings
+        self.cache['settings'] = settings
         return settings
 
     def bootstrap(self):
@@ -119,7 +122,7 @@ class Interface(Parser):
 
     def deploy_bashrc(self):
         self._get_settings()
-        mods = self.cache.get('yaml',{}).get('bashrc',{}).get('mods',[])
+        mods = self.cache.get('settings',{}).get('bashrc',{}).get('mods',[])
         if mods:
             print('status proposed modifications to ~/.bashrc:')
             print('\n'.join(mods))
@@ -132,9 +135,9 @@ class Interface(Parser):
                         fp.write(text)
                 print('status to continue, log in again or '
                     'run this: source ~/.bashrc')
-                if 'bashrc' in self.cache['yaml']:
-                    del self.cache['yaml']['bashrc']
-                write_user_yaml(self.cache['yaml'])
+                if 'bashrc' in self.cache['settings']:
+                    del self.cache['settings']['bashrc']
+                write_user_yaml(self.cache['settings'])
         else: print('status no bashrc notes in the settings')
 
     def nuke(self):
@@ -147,6 +150,11 @@ class Interface(Parser):
             ]))
         os.system('mkdir tmp')
         print('status done')
+
+    def showcache(self):
+        self.cache._debug = False
+        from cc_tools.stdtools import treeview
+        treeview(self.cache,style='pprint')
 
 if __name__=='__main__':
     Interface()

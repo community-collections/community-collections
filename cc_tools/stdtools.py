@@ -331,12 +331,11 @@ def asciitree(obj,depth=0,wide=2,last=[],recursed=False):
 	else: print('unhandled tree object %s'%obj)
 	if not recursed: print('\n')
 
-def treeview(data,style=None):
+def treeview(data,style='unicode'):
 	"""
 	Print a tree in one of several styles.
 	"""
 	#! if not style: style = conf.get('tree_style','unicode')  # pylint: disable=undefined-variable
-	style = 'unicode'
 	if style=='unicode': 
 		# protect against TeeMultiplexer here because it cannot print unicode to the log file
 		do_swap_stdout = sys.stdout.__class__.__name__=='TeeMultiplexer'
@@ -616,8 +615,10 @@ def debugger(*args):
 
 ### MISC
 
-def confirm(*msgs,sure=False):
+def confirm(*msgs,**kwargs):
 	"""Check with the user."""
+	sure = kwargs.pop('sure',False)
+	if kwargs: raise Exception('unprocessed kwargs: %s'%kwargs)
 	return sure or all(
 		re.match('^(y|Y)',(input if sys.version_info>(3,0) else raw_input)
 		('[QUESTION] %s (y/N)? '%msg))!=None for msg in msgs)

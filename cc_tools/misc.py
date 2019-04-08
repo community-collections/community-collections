@@ -27,6 +27,15 @@ def write_user_yaml(data):
     with open(cc_user,'w') as fp:
         yaml.dump(data,fp)
 
+def cache_closer(self):
+    """Hook before writing the cache."""
+    #! is this the correct way to pass a hook function into a class method?
+    # remove the settings from the cache before saving
+    #   since they should be written back to the settings if they are important
+    for key in ['settings','settings_raw']:
+        if key in self.cache:
+            del self.cache[key]
+
 # use a subshell command to run commands in conda before completing the
 #   first execution of ./cc, before python is ready
 #   after which time the cc wrapper script handles the environment

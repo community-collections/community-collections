@@ -141,17 +141,17 @@ class LmodManager(Handler):
         print('status detecting lmod')
         if root==self.CHECK_ROOT:
             self.cache['lmod_error'] = 'needs_edit'
-            self.cache['yaml']['lmod'] = {
+            self.cache['settings']['lmod'] = {
                 'modulefiles':modulefiles,
                 'build':self.BUILD_INSTRUCT}
             # lmod directory exists
         elif os.path.isdir(root):
             self._confirm_lmod()
             # save the path to lmod
-            self.cache['yaml']['lmod'] = {'root':root,'modulefiles':modulefiles}
+            self.cache['settings']['lmod'] = {'root':root,'modulefiles':modulefiles}
         else:
             if not os.path.isdir(root):
-                self.cache['yaml']['lmod'] = {
+                self.cache['settings']['lmod'] = {
                     'build':self.BUILD_INSTRUCT_FAIL%root,
                     'modulefiles':modulefiles}
                 self.cache['lmod_error'] = 'needs_edit'
@@ -169,7 +169,7 @@ class LmodManager(Handler):
         if not (
             os.path.basename((build+os.path.sep).rstrip(os.path.sep))=='lmod'):
             self.cache['lmod_error'] = 'needs_edit'
-            self.cache['yaml']['lmod'] = self.BUILD_INSTRUCT_FAIL%build
+            self.cache['settings']['lmod'] = self.BUILD_INSTRUCT_FAIL%build
             raise Exception('incorrect lmod path (must end in lmod)')
         # now that we are sure the user has lmod in the path we strip it
         build_dn = os.path.dirname(os.path.realpath(os.path.expanduser(
@@ -197,7 +197,7 @@ class LmodManager(Handler):
         if 'lmod_error' in self.cache: 
             del self.cache['lmod_error']
         # note that lmod is installed
-        self.cache['yaml']['lmod'] = dict(root=build,modulefiles=modulefiles)
+        self.cache['settings']['lmod'] = dict(root=build,modulefiles=modulefiles)
 
 class SingularityManager(Handler):
     """
@@ -241,14 +241,14 @@ class SingularityManager(Handler):
                 self.abspath = bash('which %s'%self.singularity_bin_name,
                     scroll=False)['stdout'].strip()
                 # since we found singularity we update the settings for user
-                self.cache['yaml']['singularity'] = {
+                self.cache['settings']['singularity'] = {
                     'path':self.abspath} 
                 print('status found singularity at %s'%self.abspath)
                 return
             # cannot find singularity and CHECK_PATH asked for it so we build
             else: 
                 # redirect to the build instructions
-                self.cache['yaml']['singularity'] = {
+                self.cache['settings']['singularity'] = {
                     'build':Singularity.BUILD_INSTRUCT} 
                 # transmit the error to the UseCase parent
                 self.cache['singularity_error'] = 'needs_edit'
@@ -265,7 +265,7 @@ class SingularityManager(Handler):
                 return
             else: 
                 # tell the user we could not find the path they sent
-                self.cache['yaml']['singularity'] = {
+                self.cache['settings']['singularity'] = {
                     'build':Singularity.BUILD_INSTRUCT_FAIL%path} 
                 # transmit the error to the UseCase parent
                 self.cache['singularity_error'] = 'needs_edit'

@@ -37,6 +37,7 @@ class Cacher(object):
         # default policies
         cache=None,
         cache_fn='cache.dat',
+        closer=None,
         cache_policy='standard',
         errorclear_policy='clear',
         establish_policy='check',
@@ -47,6 +48,8 @@ class Cacher(object):
                 'default. We received cache_fn=%s in error.')%cache_fn)
         # allow the user to pass along a cache
         self.cache = cache
+        # hooks
+        self.closer = closer
         # pass the decorator settings to the CachedClass below
         self.cache_fn = cache_fn
         self.cache_policy = cache_policy
@@ -65,6 +68,7 @@ class Cacher(object):
             errorclear_policy = self.errorclear_policy
             establish_policy = self.establish_policy
             reserve_policy = self.reserve_policy
+            closer = self.closer
             def __init__(self):
                 if self.cache==None: self.cache = {}
                 # an empty cache policy means we do not use it
@@ -91,6 +95,8 @@ class Cacher(object):
                     tracebacker(exception)
                 else: raise Exception('caught exception but it was not passed')
             def _try_else(self):
+                # apply the hooks before write
+                if self.closer: self.closer()
                 self.standard_write()
             def standard_write(self):
                 if self.cache_policy=='standard': 
@@ -258,6 +264,8 @@ class StateDict(dict):
         super(StateDict,self).__init__(*args,**kwargs)
     def _get_line(self):
         """Get the line that brought you here."""
+        # does not work on python 2
+        if sys.version_info<(3,0): return
         try: raise Exception('introspection-exception')
         except:
             stack = traceback.extract_stack()  
