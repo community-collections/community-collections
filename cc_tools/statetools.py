@@ -173,8 +173,22 @@ class Parser:
             for arg in inspected['args']:
                 sub.add_argument(arg)
             for arg in inspected['kwargs'].keys():
-                sub.add_argument(arg,nargs='?')
-            sub.set_defaults(**inspected['kwargs'])
+                val = inspected['kwargs'][arg]
+                if isinstance(val,bool):
+                    if val==True:
+                        sub.add_argument('--no-%s'%arg,dest=arg,
+                            action='store_false')
+                    else:
+                        sub.add_argument('--%s'%arg,dest=arg,
+                            action='store_true')
+                    sub.set_defaults(**{arg:val})
+                elif isinstance(val,str):
+                    sub.add_argument('--%s'%arg,dest=arg,default=val,type=str,
+                        help='Default for "%s": "%s".'%
+                        (arg,str(val)))
+                else: raise Exception(('cannot automatically make a parser '
+                    'from argument to "%s": "%s" (default "%s")')%(
+                    name,arg,str(val)))
             # set the function
             sub.set_defaults(func=func)
         args = parser.parse_args()
@@ -257,13 +271,25 @@ class StateDict(dict):
                 where.filename,where.lineno,where.line))
         return
     def _say(self,x): return say(x,'red_black')
+
     def get(self,x,d=None):
         if self._debug: 
-            print('debug state get: %s'%self._say(x))
+            print('debug state get "%s"'%self._say(x))
             self._get_line()
         return super(StateDict,self).get(x,d)
     def __getitem__(self,x):
         if self._debug:
-            print('debug state get: %s'%self._say(x))
+            print('debug state get "%s"'%self._say(x))
             self._get_line()
         return super(StateDict,self).__getitem__(x)
+
+    def set(self,x,y):
+        if self._debug: 
+            print('debug state set "%s" "%s"'%(self._say(x),self._say(y)))
+            self._get_line()
+        return super(StateDict,self).set(x,y)
+    def __setitem__(self,x,y):
+        if self._debug:
+            print('debug state set "%s" "%s"'%(self._say(x),self._say(y)))
+            self._get_line()
+        return super(StateDict,self).__setitem__(x,y)
