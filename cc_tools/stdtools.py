@@ -596,12 +596,13 @@ def tracebacker(*args,**kwargs):
 	debug = kwargs.pop('debug',False)
 	if kwargs: raise Exception('unprocessed kwargs %s'%kwargs)
 	# note: previously handled interrupt here but this prevents normal traceback
-	if len(args)==1: 
+	if len(args)==1 or len(args)==0: 
 		exc_type,exc_obj,exc_tb = sys.exc_info()
+		print(exc_tb)
 		tracebacker_base(exc_type,exc_obj,exc_tb,debug=debug)
 	elif len(args)==3: tracebacker_base(*args,debug=debug)
 	else: raise Exception(
-		'tracebacker expects either one or three arguments but got %d'%
+		'tracebacker expects either 0, 1 or 3 arguments but got %d'%
 		len(args))
 
 def debugger(*args): 

@@ -16,6 +16,7 @@ import cc_tools
 from cc_tools.statetools import Parser
 from cc_tools.statetools import Cacher
 from cc_tools.statetools import Convey
+from cc_tools.statetools import StateDict
 
 import cc_tools.stdtools
 from cc_tools.stdtools import color_printer
@@ -35,7 +36,7 @@ from cc_tools.misc import enforce_env
 from cc_tools.misc import write_user_yaml
 
 # manage the state
-state = {}
+state = StateDict()
 
 # send the state to the classes
 Execute = Convey(state=state)(Execute)
@@ -60,6 +61,7 @@ class Interface(Parser):
         # resolve the yaml with defaults if they are missing
         settings = settings_resolver(raw)
         self.cache['yaml'] = settings
+        return settings
 
     def bootstrap(self):
         """
@@ -89,10 +91,12 @@ class Interface(Parser):
         print('status entering subshell')
         os.system('./cc refresh')
 
-    def refresh(self):
+    def refresh(self,debug=False):
         """
         Main execution loop.
         """
+        # turn on state debugging
+        if debug: self.cache._debug = True
         # rerun the bootstrap if not ready or cache was removed
         if not self.cache.get('ready',False):
             print('status failed to find cache so running bootstrap again')
@@ -101,7 +105,7 @@ class Interface(Parser):
         # ensure that a cc.yaml file exists
         kickstart_yaml()
         enforce_env()
-        self._get_settings()
+        settings = self._get_settings()
         # preliminary changes to settings
         settings = Preliminary(**settings).solve
         # infer use case and remove associated keys

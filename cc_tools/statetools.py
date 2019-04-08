@@ -29,124 +29,6 @@ class Singleton(type):
             cls._instance = super(Singleton, cls).__call__(*args, **kw)
         return cls._instance
 
-if False:
-    class Cacher:
-        """
-        A class which when called by the cacher decorator will wrap execution
-        in a read/write operation on the cache.
-        """
-        __metaclass__ = Singleton
-        # since we enforce singleton the cache can be a class attribute
-        cache = None
-        cache_fn = 'cache.dat'
-        cache_policy = 'empty'
-        logger_policy = 'function_name,time'
-        errorclear_policy = 'clear'
-        establish_policy = 'check'
-        def __init__(self,subject,obj):
-            # subject is the function we are wrapping in the kernel
-            self.subject = subject
-            # object is the self of the class with a method decorated by cacher
-            self.obj = obj
-            # an empty cache policy means we do not use it
-            if self.cache_policy=='empty': return
-            # load 
-            #! possibly confusing class and instance attributes
-            if not os.path.isfile(self.cache_fn): self.cache = {}
-            else: 
-                print('status reading %s'%self.cache_fn)
-                with open(self.cache_fn) as fp: 
-                    self.cache = json.load(fp)
-            self.errorclear()
-            # note that the kernel and subsequent cache writes are handled manually
-            #   typically by the cacher decorator
-            return
-        def kernel(self,*args,**kwargs):
-            """
-            Run the class method which is bookended by the read/write of cache
-            """
-            # run the subject (class method wrapped in cacher)
-            # note that the obj here is the self of the class instance that 
-            #   must be sent to the subject
-            try: self.subject(self.obj,*args,**kwargs)
-            # handle failure without breaking the cache
-            except Exception as e:
-                print('error caught')
-                if hasattr(self,'cache'): 
-                    self.cache['error'] = str(e)
-                self.standard_write()
-                raise
-            self.standard_write()
-            return
-        def standard_write(self):
-            # policy: this handler writes the current cache on error
-            if self.cache_policy=='standard': 
-                # standard write
-                print('status writing %s'%self.cache_fn)
-                with open(self.cache_fn,'w') as fp:
-                    json.dump(self.cache,fp)
-            elif self.cache_policy=='empty': pass
-            else: raise Exception('invalid cache policy: %s'%self.cache_policy)
-        def errorclear(self):
-            if self.errorclear_policy=='clear':
-                if 'error' in self.cache: 
-                    del self.cache['error']
-            else: raise Exception(
-                'invalid errorclear_policy: %s'%self.errorclear_policy)
-        def establish(self,name,function,policy='check',**kwargs):
-            """
-            Ensure that a result is stored in the cache.
-            """
-            if policy=='check':
-                if name not in self.cache:
-                    self.cache[name] = function(**kwargs)
-            else: raise Exception('invalid policy %s'%policy)
-
-#!!! this is a nope because it runs before Cacher.cache is ready
-if False:
-    def logger(function):
-        """Decorator for updating the cache."""
-        def logger(*args,**kwargs):
-            #! self is really Parser/Cacher here ... !?? is this wise?
-            if Cacher.cache_policy!='empty':
-                if Cacher.cache==None:
-                    import pdb;pdb.set_trace()
-                if 'log' not in Cacher.cache:
-                    Cacher.cache['log'] = []
-                #! design?
-                #! Cacher is singleton
-                if Cacher.logger_policy=='function_name,time':
-                    ts = datetime.datetime.fromtimestamp(
-                        time.time()).strftime('%Y.%m.%d.%H%M')
-                    record = {'when':ts,'function_name':function.__name__}
-                    record['return'] = result
-                    return record
-                else: raise Exception('invalid logger_policy: %s'%logger_policy)
-                #! done design?
-                Cacher.cache['log'].append(record)
-            return function(*args,**kwargs)
-        return logger
-
-    def logger(function):
-        """Decorator for updating the cache."""
-        def logger(*args,**kwargs):
-            print('LOGGING NOW! %s'%function.__name__)
-            return function(*args,**kwargs)
-        return logger
-
-    def cacher(subject):
-        """Decorate a class function with the Cacher class."""
-        # note that this is a critical link between Parser and Cacher
-        def cacher(self,*args,**kwargs): 
-            cache_partner = Cacher(subject=subject,obj=self)
-            # dynamically populate the target class with cache tools
-            for attr in ['cache','establish']:
-                if hasattr(cache_partner,attr):
-                    setattr(self,attr,getattr(cache_partner,attr))
-            # run the kernel of the computation here
-            return cache_partner.kernel(*args,**kwargs)
-        return cacher
-
 class Cacher(object):
     """
     Class decorator which supplies a cache and associated functions.
@@ -160,7 +42,6 @@ class Cacher(object):
         establish_policy='check',
         reserve_policy=True):
         if not isinstance(cache_fn,str_types):
-            import pdb;pdb.set_trace()
             raise Exception(('The argument to Cacher must be a string, '
                 'the name of the cache file. Use `Cacher()` for the '
                 'default. We received cache_fn=%s in error.')%cache_fn)
@@ -324,7 +205,7 @@ class Parser:
         Interactive mode.
         """
         import code
-        sys.ps1 = "[cc]: "
+        sys.ps1 = "[cc] >>> "
         vars = globals()
         vars.update(locals())
         if hasattr(self,'subshell',): 
@@ -350,3 +231,39 @@ class Convey(object):
         Convey.__name__ = cls.__name__
         return Convey            
 
+import traceback
+from .stdtools import say
+
+class StateDict(dict):
+    """
+    Special dictionary for watching what happens to the state.
+    Prototype only.
+    """
+    def __init__(self,debug=False,*args,**kwargs):
+        self._debug = debug
+        super(StateDict,self).__init__(*args,**kwargs)
+    def _get_line(self):
+        """Get the line that brought you here."""
+        try: raise Exception('introspection-exception')
+        except:
+            stack = traceback.extract_stack()  
+            #! the choice of 3 is probably static
+            #! note that if the line does not have state or self.cache
+            #!   in it, this might be earlier in the broken line
+            #!   because the stack line does not read to the true abstract
+            #!   beginning of the line
+            where = stack[-3]
+            print('debug we are in %s lineno %d line: `%s`'%(
+                where.filename,where.lineno,where.line))
+        return
+    def _say(self,x): return say(x,'red_black')
+    def get(self,x,d=None):
+        if self._debug: 
+            print('debug state get: %s'%self._say(x))
+            self._get_line()
+        return super(StateDict,self).get(x,d)
+    def __getitem__(self,x):
+        if self._debug:
+            print('debug state get: %s'%self._say(x))
+            self._get_line()
+        return super(StateDict,self).__getitem__(x)
