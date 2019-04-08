@@ -249,7 +249,7 @@ class SingularityManager(Handler):
             else: 
                 # redirect to the build instructions
                 self.cache['settings']['singularity'] = {
-                    'build':Singularity.BUILD_INSTRUCT} 
+                    'build':self.BUILD_INSTRUCT} 
                 # transmit the error to the UseCase parent
                 self.cache['singularity_error'] = 'needs_edit'
                 raise Exception('status failed to find Singularity')
@@ -266,7 +266,7 @@ class SingularityManager(Handler):
             else: 
                 # tell the user we could not find the path they sent
                 self.cache['settings']['singularity'] = {
-                    'build':Singularity.BUILD_INSTRUCT_FAIL%path} 
+                    'build':self.BUILD_INSTRUCT_FAIL%path} 
                 # transmit the error to the UseCase parent
                 self.cache['singularity_error'] = 'needs_edit'
                 raise Exception('status failed to find user-specified Singularity')
