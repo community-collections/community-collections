@@ -96,6 +96,7 @@ class Cacher(object):
                 else: raise Exception('caught exception but it was not passed')
             def _try_else(self):
                 # apply the hooks before write
+                #! hooks are not used on _try_except above for debugging
                 if self.closer: self.closer()
                 self.standard_write()
             def standard_write(self):
@@ -268,7 +269,7 @@ class StateDict(dict):
         if sys.version_info<(3,0): return
         try: raise Exception('introspection-exception')
         except:
-            stack = traceback.extract_stack()  
+            stack = traceback.extract_stack()
             #! the choice of 3 is probably static
             #! note that if the line does not have state or self.cache
             #!   in it, this might be earlier in the broken line

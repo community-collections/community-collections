@@ -9,6 +9,14 @@ from .settings import default_bootstrap
 from .stdtools import bash
 from .stdtools import tracebacker
 
+def path_resolve(path):
+    """
+    Canonical way to resolve paths 
+    We convert relative paths with tilde to absolute paths without 
+    resolving symlinks
+    """
+    return os.path.realpath(os.path.expanduser(path))
+
 def kickstart_yaml():
     """Start with the default user settings if absent."""
     if not os.path.isfile(cc_user):

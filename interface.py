@@ -46,10 +46,9 @@ CCStack = Convey(state=state)(CCStack)
 UseCase = Convey(state=state)(UseCase)
 
 @Cacher(
-    # the interface uses the cache
     cache_fn='cache.json',
-    cache=state,
-    closer=cache_closer)
+    closer=cache_closer,
+    cache=state,)
 
 class Interface(Parser):
     """
@@ -120,7 +119,7 @@ class Interface(Parser):
         # debug is also CLI function so no args
         self.debug()
 
-    def deploy_bashrc(self):
+    def update_bashrc(self):
         self._get_settings()
         mods = self.cache.get('settings',{}).get('bashrc',{}).get('mods',[])
         if mods:

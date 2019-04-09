@@ -5,20 +5,25 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
+import sys
 import re
 import json
 import tempfile
+import traceback
 
 from . import stdtools
 from .stdtools import Handler
 from .stdtools import command_check
 from .stdtools import bash
+from .stdtools import tracebacker
 
 from .settings import specs
 from .settings import conda_spec
+from .settings import cc_user
 from .misc import subshell
 from .misc import dependency_pathfinder
 from .misc import shell_script
+from .misc import path_resolve
 
 # source environment
 script_source_env = """
@@ -139,9 +144,11 @@ class LmodManager(Handler):
     BUILD_INSTRUCT_FAIL = (BUILD_FAIL+
         'User-defined Lmod path is absent ('
         'or does not end in `lmod`, which is the default name): "%s".')
+
     def _confirm_lmod(self):
         #! confirm that lmod is correctly installed?
         return 
+
     def detect(self,root,modulefiles):
         print('status detecting lmod')
         if root==self.CHECK_ROOT:
@@ -153,7 +160,8 @@ class LmodManager(Handler):
         elif os.path.isdir(root):
             self._confirm_lmod()
             # save the path to lmod
-            self.cache['settings']['lmod'] = {'root':root,'modulefiles':modulefiles}
+            self.cache['settings']['lmod'] = {
+                'root':root,'modulefiles':modulefiles}
         else:
             if not os.path.isdir(root):
                 self.cache['settings']['lmod'] = {
@@ -164,6 +172,7 @@ class LmodManager(Handler):
                 self._confirm_lmod()
         self.root = root
         self.modulefiles = modulefiles
+
     def build(self,build,modulefiles):
         """
         Install Lmod in the simplest possible way.
@@ -237,13 +246,13 @@ class SingularityManager(Handler):
         if (build==self.BUILD_INSTRUCT 
             or re.match(self.BUILD_INSTRUCT_FAIL_START,build)):
             self.cache['singularity_error'] = 'needs_edit'
-            raise Exception('pending installation!')
+            #! raise Exception('pending installation!')
         #! needs installer here
         #! assume relative path
         print('status installing to %s'%os.path.join(os.getcwd(),build))
         self.cache['singularity_error'] = 'needs_install'
         self.abspath = 'PENDING_INSTALL'
-        raise Exception('pending installation!')
+        #! raise Exception('pending installation!')
 
     def detect(self,path):
         """
@@ -289,3 +298,117 @@ class SingularityManager(Handler):
                 # transmit the error to the UseCase parent
                 self.cache['singularity_error'] = 'needs_edit'
                 raise Exception('status failed to find user-specified Singularity')
+
+class SpackManager(Handler):
+    STATE_CONFIRM = 'needs_confirm'
+    STATE_ABSENT = 'absent'
+    # command and returncode must match
+    # calling spack without version is slow and returns 1
+    spack_bin_path = './bin/spack --version'
+    spack_returncode = 0
+    url = 'https://github.com/spack/spack.git'
+    ERROR_NOTE = ('ERROR. '
+        'Remove this note and follow these instructions to continue.')
+
+    """
+    pseudocode
+    ----------
+    scheme 1:
+        if get build
+            try 
+                build
+            except 
+                report build error
+                    to yaml build instructions
+                error edit
+        if get path
+            try
+                detect
+                report path to settings
+            except
+                report detect error
+                    to yaml build instructions
+        note no cache ncessary in this scheme
+    options:
+        do a precheck to make a folder?
+            no. too complicated. just try and except
+        make the build directory?
+            no. that's not generic. let a clone fail or whatever
+    """
+
+    def _spack_failure(self):
+        """Handle spack installation failure."""
+        return
+
+    def _check_spack(self,path):
+        """Confirm the spack installation."""
+        print('status checking spack')
+        return (command_check(
+            self.spack_bin_path,
+            cwd=path)==self.spack_returncode)
+
+    def _check_spack_prelim(self,path):
+        """Check if spack directory exists."""
+        if os.path.isdir(path): return self.STATE_CONFIRM
+        else: return self.STATE_ABSENT
+
+    def _install_spack(self,path):
+        """
+        Install spack according to the instructions
+        """
+        print('status installing spack')
+        bash('git clone %s %s'%(self.url,path))
+
+    def _report_ready(self,path):
+        """
+        """
+        print('status reporting ready')
+        # set spack in the settings
+        self.cache['settings']['spack'] = {'path':path}
+        pass
+
+    def error_null(self,error,**kwargs):
+        """Ignore request if error present."""
+        print(('warning spack cannot be installed until the user edits %s')
+            %cc_user)
+
+    def build(self,build):
+        """
+        Field a spack build request.
+        """
+        print('status received the build request for spack from the user')
+        print('status building at %s'%build)
+        self.root = path_resolve(build)
+        # check if probably already built
+        prelim = self._check_spack_prelim(build)
+        if prelim==self.STATE_CONFIRM:
+            if self._check_spack(build):
+                return self._report_ready(path=build)
+            else: pass
+        elif prelim==self.STATE_ABSENT: pass
+        else: raise Exception(
+            'invalid preliminary state for %s: %s'%(
+                self.__class__.__name__,prelim))
+        # continue with the installation
+        try: 
+            self._install_spack(path=build)
+            self._check_spack(path=build)
+            self._report_ready(path=fdfas)
+        # exceptions are handled later by UseCase
+        except Exception as e: 
+            # save the error for later
+            exc_type,exc_obj,exc_tb = sys.exc_info()
+            this_error = {
+                'formatted':traceback.format_tb(exc_tb),
+                'result':exc_obj}
+            # error handling in Execute.UseCase
+            self._register_error(error=this_error,name='spack')
+            # error message in the settings
+            #!! we need to interpret the error here
+            self.cache['settings']['spack']['error'] = (
+                self.ERROR_NOTE+' '+'????')
+    
+    def detect(self,path):
+        """
+        """
+        print('warning we need a spack detection script')

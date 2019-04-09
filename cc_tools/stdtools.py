@@ -72,11 +72,14 @@ def color_printer(override=False,prefix=None):
 
 import subprocess
 
-def command_check(command):
+def command_check(command,cwd=None):
     """Run a command and see if it completes with returncode zero."""
+    kwargs = {}
+    if cwd: kwargs['cwd'] = cwd
     try:
         with open(os.devnull,'w') as FNULL:
-            proc = subprocess.Popen(command,stdout=FNULL,stderr=FNULL,shell=True,executable='/bin/bash')
+            proc = subprocess.Popen(command,stdout=FNULL,
+            	stderr=FNULL,shell=True,executable='/bin/bash',**kwargs)
             proc.communicate()
             return proc.returncode
     except Exception as e: 
