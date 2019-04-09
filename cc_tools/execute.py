@@ -44,15 +44,11 @@ class UseCase(Handler):
         try: singularity = Convey(cache=self.cache)(
             SingularityManager)(**singularity)
         # defer exceptions
-        except Exception as e: 
-            print(e)
-            raise 
+        except Exception as e: pass
         # instantiate a connection to Lmod
         try: lmod = Convey(cache=self.cache)(LmodManager)(**lmod)
         # defer exceptions
-        except Exception as e: 
-            print(e)
-            raise 
+        except Exception as e: pass
         # handle any errors above
         #! standardize the error reporting flags?
         has_singularity_error = self.cache.get('singularity_error',False)
