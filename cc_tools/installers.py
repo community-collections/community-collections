@@ -88,7 +88,9 @@ class CCStack:
             #! add auto-conda installation here
             print('status cannot find conda')
             print('status installing miniconda')
-            self.miniconda()
+            has_worked = self.miniconda()
+            if not has_worked: 
+                raise Exception('failed to install Miniconda')
         else: print('status found conda')
         print('status checking conda environments')
         result = bash(subshell('conda env list --json'),scroll=False)
@@ -111,7 +113,7 @@ class CCStack:
         """
         script = (install_miniconda%{'miniconda_path':os.path.realpath(
             os.path.expanduser(dependency_pathfinder(specs['miniconda'])))})
-        shell_script(script)
+        return shell_script(script)
     def conda_env(self):
         """
         Install the conda environment.
@@ -169,7 +171,9 @@ class LmodManager(Handler):
         if not (
             os.path.basename((build+os.path.sep).rstrip(os.path.sep))=='lmod'):
             self.cache['lmod_error'] = 'needs_edit'
-            self.cache['settings']['lmod'] = self.BUILD_INSTRUCT_FAIL%build
+            self.cache['settings']['lmod'] = {
+                'build':self.BUILD_INSTRUCT_FAIL%build,
+                'modulefiles':modulefiles}
             raise Exception('incorrect lmod path (must end in lmod)')
         # now that we are sure the user has lmod in the path we strip it
         build_dn = os.path.dirname(os.path.realpath(os.path.expanduser(
@@ -197,7 +201,8 @@ class LmodManager(Handler):
         if 'lmod_error' in self.cache: 
             del self.cache['lmod_error']
         # note that lmod is installed
-        self.cache['settings']['lmod'] = dict(root=build,modulefiles=modulefiles)
+        self.cache['settings']['lmod'] = dict(
+            root=build,modulefiles=modulefiles)
 
 class SingularityManager(Handler):
     """
@@ -206,11 +211,13 @@ class SingularityManager(Handler):
     singularity_bin_name = 'singularity'
     singularity_returncode = 1
     CHECK_PATH = 'NEEDS_SINGULARITY_PATH'
-    BUILD_INSTRUCT = ('ERROR: cannot find Singularity. '
+    BUILD_INSTRUCT_FAIL_START = 'ERROR: cannot find Singularity '
+    BUILD_INSTRUCT = (BUILD_INSTRUCT_FAIL_START+
         'Replace this build message with `build: /path/to/new/install` if '
         'you want us to install it. Otherwise supply a path to the binary '
         'with `path: /path/to/singularity`.')
-    BUILD_INSTRUCT_FAIL = ('ERROR: cannot find Singularity '
+    BUILD_INSTRUCT_FAIL_START = 'ERROR: cannot find Singularity '
+    BUILD_INSTRUCT_FAIL = (BUILD_INSTRUCT_FAIL_START+
         'at user-supplied path: %s. '
         'Replace this build message with `build: /path/to/new/install` if '
         'you want us to install it. Otherwise supply a path to the binary '
@@ -219,6 +226,11 @@ class SingularityManager(Handler):
     def install(self,build):
         """Install singularity if we receive a build request."""
         print('status installing singularity')
+        #! clumsy way to check both build instructions, even the path scold
+        if (build==self.BUILD_INSTRUCT 
+            or re.match(self.BUILD_INSTRUCT_FAIL_START,build)):
+            self.cache['singularity_error'] = 'needs_edit'
+            raise Exception('pending installation!')
         #! needs installer here
         #! assume relative path
         print('status installing to %s'%os.path.join(os.getcwd(),build))

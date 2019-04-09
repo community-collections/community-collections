@@ -91,7 +91,7 @@ class Cacher(object):
                 if self.cache_policy!='empty': 
                     self.cache['error'] = str(exception)
                 self.standard_write()
-                if exception!=None:
+                if exception!=None: 
                     tracebacker(exception)
                 else: raise Exception('caught exception but it was not passed')
             def _try_else(self):

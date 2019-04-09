@@ -597,7 +597,6 @@ def tracebacker(*args,**kwargs):
 	# note: previously handled interrupt here but this prevents normal traceback
 	if len(args)==1 or len(args)==0: 
 		exc_type,exc_obj,exc_tb = sys.exc_info()
-		print(exc_tb)
 		tracebacker_base(exc_type,exc_obj,exc_tb,debug=debug)
 	elif len(args)==3: tracebacker_base(*args,debug=debug)
 	else: raise Exception(
