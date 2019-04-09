@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
+import re
 import json
 import tempfile
 
@@ -131,11 +132,13 @@ class LmodManager(Handler):
     Interface to Lmod
     """
     CHECK_ROOT = 'NEEDS_LMOD_PATH'
-    BUILD_INSTRUCT = ('ERROR: cannot find Lmod. '
+    BUILD_FAIL = 'ERROR: cannot find Lmod. '
+    BUILD_INSTRUCT = (BUILD_FAIL+
         'Replace this entire line with `build: ./lmod` to build in the standard '
         'location or choose a different path.')
-    BUILD_INSTRUCT_FAIL = ('ERROR: user-defined Lmod path is absent ('
-        'or does not end in `lmod`, which is the default name): %s')
+    BUILD_INSTRUCT_FAIL = (BUILD_FAIL+
+        'User-defined Lmod path is absent ('
+        'or does not end in `lmod`, which is the default name): "%s".')
     def _confirm_lmod(self):
         #! confirm that lmod is correctly installed?
         return 
@@ -167,10 +170,15 @@ class LmodManager(Handler):
         """
         url_lua = \
             'https://downloads.sourceforge.net/project/lmod/lua-5.1.4.8.tar.gz'
+        url_lmod = 'http://sourceforge.net/projects/lmod/files/Lmod-6.1.tar.bz2'
+        # do not build if we find the error message
+        if re.match(self.BUILD_FAIL,build):
+            self.cache['lmod_error'] = 'needs_edit'
+            return
         # for clarity we enforce a true lmod path
         if not (
             os.path.basename((build+os.path.sep).rstrip(os.path.sep))=='lmod'):
-            self.cache['lmod_error'] = 'needs_edit'
+            self.cache['lmod_error'] = 'invalid_path'
             self.cache['settings']['lmod'] = {
                 'build':self.BUILD_INSTRUCT_FAIL%build,
                 'modulefiles':modulefiles}
@@ -191,8 +199,7 @@ class LmodManager(Handler):
             shell_script(generic_install%dict(url=url_lua,
                 prefix=self.cache['prefix']),subshell=subshell)
         print('status building lmod at %s'%build_dn)
-        shell_script(generic_install%dict(url=
-            'http://sourceforge.net/projects/lmod/files/Lmod-6.1.tar.bz2',
+        shell_script(generic_install%dict(url=url_lmod,
             prefix=build_dn,subshell=subshell))
         # modulefiles location is checked by UseCase
         self.root = build
