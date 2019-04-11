@@ -32,6 +32,9 @@ class Singleton(type):
 class Cacher(object):
     """
     Class decorator which supplies a cache and associated functions.
+    Note that the child class needs to run a try/except like this one:
+    To write the cache on failure or success use self._try_except or 
+    alternately self._try_else otherwise the cache is not saved!
     """
     def __init__(self,
         # default policies
@@ -87,14 +90,19 @@ class Cacher(object):
                 # initialize the parent class
                 super(cls,self).__init__()
             def _try_except(self,exception=None):
-                print('error caught')
+                # the languish flag turns off the Cacher
+                if self.cache.get('languish',False): return
                 if self.cache_policy!='empty': 
                     self.cache['error'] = str(exception)
                 self.standard_write()
-                if exception!=None: 
-                    tracebacker(exception)
+                if exception!=None:
+                    # suppress exceptions if requested
+                    if not self.cache.pop('traceback_off',False): 
+                        tracebacker(exception)
                 else: raise Exception('caught exception but it was not passed')
             def _try_else(self):
+                # the languish flag turns off the Cacher
+                if self.cache.get('languish',False): return
                 # apply the hooks before write
                 #! hooks are not used on _try_except above for debugging
                 if self.closer: self.closer()

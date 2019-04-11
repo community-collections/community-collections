@@ -21,6 +21,7 @@ from cc_tools.statetools import StateDict
 import cc_tools.stdtools
 from cc_tools.stdtools import color_printer
 from cc_tools.stdtools import confirm
+from cc_tools.stdtools import bash
 # emphasize text printed from cc
 color_printer(prefix=cc_tools.stdtools.say('[CC]','mag_gray'))
 
@@ -90,8 +91,19 @@ class Interface(Parser):
         # continue once cache reports ready
         else: pass
         # after the a bootstrap we call refresh to continue
-        print('status entering subshell')
+        # the Cacher class maintains a "state" called cache that is transmitted
+        #   to class instances and stores important information about the 
+        #   execution flow. after installing dependencies, to use them we need
+        #   a new subshell. hence we write the cache now and turn off writing
+        #   so the Cacher-based read/write of the cache in the subshell is not
+        #   overriddden by this, the parent. we save first with try_else
+        #! self._try_else()
+        self.cache['languish'] = True
+        #! you lose colors if you do this: bash('./cc refresh')
+        #! relative path okay here?
+        print('status running a subshell to complete the installation')
         os.system('./cc refresh')
+        sys.exit(0)
 
     def refresh(self,debug=False):
         """

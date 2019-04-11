@@ -91,7 +91,6 @@ class CCStack:
     def start_conda(self):
         """Check if the CC conda environment exists."""
         if not command_check(subshell('conda'))==0:
-            #! add auto-conda installation here
             print('status cannot find conda')
             print('status installing miniconda')
             has_worked = self.miniconda()
@@ -103,14 +102,11 @@ class CCStack:
         envs = json.loads(result['stdout'])
         print('status checking for the %s environment'%specs['envname'])
         conda_env_path = os.path.join(
-            #! hacking in the right path here but this should be generalized
             dependency_pathfinder(specs['miniconda']),'envs',specs['envname'])
         if conda_env_path not in envs.get('envs',[]):
             print('status failed to find the %s environment'%specs['envname'])
             print('status building the environment')
             self.conda_env()
-            #! save results to the config?
-            #! write_config({'conda_env':conda_env_path},config_fn=self.config_fn)
             print('status done building the environment')
         else: print('status found conda environment: %s'%specs['envname'])
     def miniconda(self):
@@ -133,6 +129,234 @@ class CCStack:
             raise Exception('cannot find `which` required for execution')
 
 class LmodManager(Handler):
+    """
+    Install Lmod and note its location
+    """
+    CHECK_ROOT = 'NEEDS_LMOD_PATH'
+    url_lua = (
+        'https://downloads.sourceforge.net/project/lmod/lua-5.1.4.8.tar.gz')
+    url_lmod = 'http://sourceforge.net/projects/lmod/files/Lmod-6.1.tar.bz2'
+    ERROR_NOTE = ('ERROR. '
+        'Remove this note and follow these instructions to continue.')
+    ERROR_PATH_ENDS_LMOD = ' The lmod root path must end in "lmod".'
+    ERROR_NEEDS_BUILD = ('Cannot locate Lmod. Set the `build` key to a '
+        'desired installation location, remove this error, and refresh '
+        'to continue.')
+    ERROR_USER_ROOT_MISSING = ('User-defined root path %s cannot be found. '
+        'Supply the correct path or use `build` instead of `root` '
+        'and refresh to install Lmod at the build location.')
+    ERROR_USER_ROOT_FAIL = ('User-defined root path %s  '
+        'exists but we cannot confirm Lmod works. ')
+    STATE_ABSENT = 'absent'
+    STATE_CONFIRM = 'needs_confirm'
+    lua_reqs = ('posix','lfs')
+    # account for the removal of the lmod root path here
+    lmod_bin_check = './lmod/lmod/libexec/lmod help'
+    lmod_returncode = 0
+
+    def _check_lmod_prelim(self,path):
+        """Check if spack directory exists."""
+        if os.path.isdir(path): return self.STATE_CONFIRM
+        else: return self.STATE_ABSENT
+
+    def _enforce_path(self,build):
+        """
+        For clarity we enforce a true lmod path. 
+        The path must end in 'lmod'.
+        """
+        if not (os.path.basename(
+            (build+os.path.sep).rstrip(os.path.sep))=='lmod'):
+            return False
+        # now that we are sure the user has lmod in the path we strip it
+        build_dn = os.path.dirname(os.path.realpath(os.path.expanduser(
+            (build+os.path.sep).rstrip(os.path.sep))))
+        return build_dn
+
+    def _install_lmod(self,path):
+        """Installation procedure from Lmod straight from the docs."""
+
+        # we check for lua before installing to the conda environment
+        needs_lua = False
+        if not command_check('which lua')==0: needs_lua = True
+        if not shell_script(lua_check(*self.lua_reqs),bin='lua'):
+            print('status installing lua because we '
+                'could not find one of: %s'%str(self.lua_reqs))
+            needs_lua = True
+        #! should we register this installation somewhere?
+        if needs_lua:
+            shell_script(generic_install%dict(url=self.url_lua,
+                prefix=self.cache['prefix']),subshell=subshell)
+        print('status building lmod at %s'%path)
+        shell_script(generic_install%dict(url=self.url_lmod,
+            prefix=path,subshell=subshell))
+        self.root = path
+
+    def _check_lmod(self,path):
+        """Confirm the spack installation."""
+        check = command_check(self.lmod_bin_check,cwd=path)
+        # enforce integer returncode because a path failure returns False
+        if isinstance(check,bool) and not check: return False
+        return (check==self.lmod_returncode)
+
+    def _report_ready(self):
+        print('status reporting ready')
+        # recall that we install the lmod folder into a root path
+        self.root = os.path.join(self.root,'lmod')
+        rel_path = os.path.join('.',os.path.relpath(self.root,os.getcwd()))
+        if '..' not in rel_path: self.root = rel_path
+        # clear errors from previous runs
+        self.cache['errors'].pop('lmod',None)
+        self.cache['settings']['lmod'] = {
+            'root':self.root,'modulefiles':self.modulefiles}
+
+    def _check_modulefiles(self,modulefiles):
+        # make a modulefiles location if absent
+        modulefiles_dn = os.path.realpath(
+            os.path.expanduser(modulefiles))
+        if not os.path.isdir(modulefiles_dn):
+            print('status failed to find modulefiles directory')
+            print('status mkdir %s'%modulefiles_dn)
+            os.mkdir(modulefiles_dn)
+
+    def _detect_lmod(self):
+        """
+        Check if Lmod is available.
+        """
+        if 'LMOD_CMD' in os.environ:
+            # example: '/software/lmod/lmod/libexec/lmod'
+            #   path to Lmod is therefore /software/lmod
+            lmod_cmd = os.environ['LMOD_CMD']
+            split_path = ((lmod_cmd+os.path.sep).rstrip(os.path.sep)).split('/')
+            if split_path[-3:]==['lmod','libexec','lmod']:
+                # the true path to lmod
+                return os.path.sep.join(split_path[:-3])
+        return False
+
+    ### interpret lmod settings (each method below reads possible inputs)
+
+    def error_null(self,error,**kwargs):
+        """Ignore request if error present."""
+        print(('warning lmod cannot be installed until the user edits %s')
+            %cc_user)
+        self._register_error(name='lmod',error=
+            'The lmod section needs user edits.')
+
+    def build(self,build,modulefiles):
+        """Request to build Lmod."""
+
+        # modulefiles have a separate folder
+        #! this is a design choice that needs to be revisited
+        self._check_modulefiles(modulefiles)
+        self.modulefiles = modulefiles
+
+        # enforce lmod at the end of the path
+        check_path = self._enforce_path(build)
+        # handle path error in which root does not end in lmod
+        if not check_path:
+            self.cache['settings']['lmod']['error'] = (
+                self.ERROR_NOTE+self.ERROR_PATH_ENDS_LMOD)
+            self._register_error(name='lmod',error=
+                'The Lmod build path is invalid.')
+        # continue with the modified path
+        else: build = check_path
+
+        # check if built
+        prelim = self._check_lmod_prelim(build)
+        if prelim==self.STATE_CONFIRM:
+            if self._check_lmod(build):
+                self.root = build
+                return self._report_ready()
+            else: pass
+        elif prelim==self.STATE_ABSENT: pass
+        else: raise Exception(
+            'Development error: invalid preliminary state for %s: %s'%(
+                self.__class__.__name__,prelim))
+
+        # continue with the installation
+        try: 
+            self._install_lmod(path=build)
+            checked = self._check_lmod(path=build)
+            if not checked:
+                raise Exception('Lmod failed check after installation.')
+            self.root = build
+            self._report_ready()
+            # stage some bashrc changes only if we just installed
+            if 'bashrc_mods' not in self.cache: 
+                self.cache['bashrc_mods'] = []
+            init_fn = os.path.abspath(os.path.join(self.root,'lmod/init/bash'))
+            mods = ['export MODULEPATH=%s'%os.path.abspath(self.modulefiles),'source %s'%init_fn]
+            self.cache['bashrc_mods'].extend(mods)
+
+        # exceptions are handled later by UseCase
+        except Exception as e: 
+            # save the error for later
+            exc_type,exc_obj,exc_tb = sys.exc_info()
+            this_error = {
+                'formatted':traceback.format_tb(exc_tb),
+                'result':str(exc_obj)}
+            # error handling in Execute.UseCase
+            self._register_error(error=this_error,name='lmod')
+            # error message in the settings
+            #! we need to interpret the error here
+            #! add a more specific error (python error in the cache)
+            self.cache['settings']['lmod']['error'] = (
+                self.ERROR_NOTE+' '+
+                'See ./cc showcache for details on the installation error')
+
+    def detect(self,root,modulefiles):
+        """Confirm that lmod exists in the path given by the user."""
+        #! standardize the error messages because some are repeated
+        self.modulefiles = modulefiles
+        if root==self.CHECK_ROOT:
+            lmod_root = self._detect_lmod()
+            if lmod_root:
+                self.root = lmod_root
+                checked = self._check_lmod(path=self.root)
+                # after detecting make sure that it works
+                if checked:
+                    self._report_ready()
+                else: 
+                    self._register_error(name='lmod',
+                        error='Failed to find Lmod. Need build path from the user.')
+                    self.cache['settings']['lmod'] = {
+                        'build':'./lmod',
+                        'modulefiles':self.modulefiles,
+                        'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
+            else:
+                self._register_error(name='lmod',
+                    error='Failed to find Lmod. Need build path from the user.')
+                self.cache['settings']['lmod'] = {
+                    'build':'./lmod',
+                    'modulefiles':self.modulefiles,
+                    'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
+        else:
+            if self._check_lmod_prelim(root)==self.STATE_ABSENT:
+                self._register_error(name='lmod',
+                    error='Cannot find user-specified root: %s.'%root)
+                self.cache['settings']['lmod'] = {
+                    # add in the default
+                    'build':'./lmod',
+                    'modulefiles':self.modulefiles,
+                    'error':self.ERROR_NOTE+' '+
+                    self.ERROR_USER_ROOT_MISSING%root}
+                return
+            lmod_checked = self._check_lmod(path=root)
+            if lmod_checked:
+                self._report_ready()
+            else: 
+                self._register_error(name='lmod',
+                    error=('Cannot confirm lmod '
+                        'despite user-specified root: %s.')%root)
+                self.cache['settings']['lmod']['error'] = (
+                    self.ERROR_NOTE)
+                self.cache['settings']['lmod'] = {
+                    #!! add in the default
+                    'build':'./lmod',
+                    'modulefiles':self.modulefiles,
+                    'error':self.ERROR_NOTE+' '+
+                    self.ERROR_USER_ROOT_FAIL%root}
+
+class LmodManagerDEPRECATED(Handler):
     """
     Interface to Lmod
     """
@@ -304,47 +528,17 @@ class SpackManager(Handler):
     STATE_ABSENT = 'absent'
     # command and returncode must match
     # calling spack without version is slow and returns 1
-    spack_bin_path = './bin/spack --version'
+    spack_bin_check = './bin/spack --version'
     spack_returncode = 0
     url = 'https://github.com/spack/spack.git'
     ERROR_NOTE = ('ERROR. '
         'Remove this note and follow these instructions to continue.')
 
-    """
-    pseudocode
-    ----------
-    scheme 1:
-        if get build
-            try 
-                build
-            except 
-                report build error
-                    to yaml build instructions
-                error edit
-        if get path
-            try
-                detect
-                report path to settings
-            except
-                report detect error
-                    to yaml build instructions
-        note no cache ncessary in this scheme
-    options:
-        do a precheck to make a folder?
-            no. too complicated. just try and except
-        make the build directory?
-            no. that's not generic. let a clone fail or whatever
-    """
-
-    def _spack_failure(self):
-        """Handle spack installation failure."""
-        return
-
     def _check_spack(self,path):
         """Confirm the spack installation."""
         print('status checking spack')
         return (command_check(
-            self.spack_bin_path,
+            self.spack_bin_check,
             cwd=path)==self.spack_returncode)
 
     def _check_spack_prelim(self,path):
@@ -371,6 +565,8 @@ class SpackManager(Handler):
         """Ignore request if error present."""
         print(('warning spack cannot be installed until the user edits %s')
             %cc_user)
+        self._register_error(name='spack',error=
+            'The lmod section needs user edits.')
 
     def build(self,build):
         """
@@ -379,7 +575,7 @@ class SpackManager(Handler):
         print('status received the build request for spack from the user')
         print('status building at %s'%build)
         self.root = path_resolve(build)
-        # check if probably already built
+        # check if already built
         prelim = self._check_spack_prelim(build)
         if prelim==self.STATE_CONFIRM:
             if self._check_spack(build):
@@ -400,15 +596,17 @@ class SpackManager(Handler):
             exc_type,exc_obj,exc_tb = sys.exc_info()
             this_error = {
                 'formatted':traceback.format_tb(exc_tb),
-                'result':exc_obj}
+                'result':str(exc_obj)}
             # error handling in Execute.UseCase
             self._register_error(error=this_error,name='spack')
             # error message in the settings
-            #!! we need to interpret the error here
+            #! we need to interpret the error here
+            #! add a more specific error (python error in the cache)
             self.cache['settings']['spack']['error'] = (
-                self.ERROR_NOTE+' '+'????')
+                self.ERROR_NOTE)
     
     def detect(self,path):
         """
         """
-        print('warning we need a spack detection script')
+        raise Exception('dev')
+

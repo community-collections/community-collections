@@ -38,43 +38,50 @@ class Preliminary(Handler):
 
 class UseCase(Handler):
     """Clean up the user settings. Runs before Execute."""
-    BASHRC_MODS = [
-        'export MODULEPATH=%(modulefiles)s',
-        'source %(root)s/lmod/init/bash']
-
-    def _handle_bashrc(self):
-        """
-        This function picks up any bashrc modifications and puts them in the 
-        settings file after which time the user can deploy them with 
-        update_bashrc.
-        """
-        pass
 
     def _shutdown(self):
         """
         End this session of the UseCase by updating the settings.
         """
+        self._stage_bashrc_changes()
         write_user_yaml(self.cache['settings'])
-        self._handle_bashrc()
+
+    def _stage_bashrc_changes(self):
+        """
+        Add a list of bashrc changes to the user settings.
+        The user can apply the changes with ./cc update_bashrc
+        """
+        mods = self.cache.pop('bashrc_mods',[])
+        if mods:
+            self.cache['settings']['bashrc'] = {'instructions':(
+                'Run ./cc update_bashrc to add modules to your environment '
+                'automatically. Alternately, you can add the items in the '
+                '"mods" list in the bashrc dictionary to '
+                'your ~/.bashrc file (be sure to remove yaml syntax). '
+                'Run `source ~/.bashrc` or log in again to use CC properly. '),
+                'mods':mods}
 
     def main(self,singularity=None,lmod=None,spack=None,**kwargs):
         print('status inferring use case')
+
+        ### DEFAULTS
+
         # default singularity settings
         if not singularity:
             #! note that this might be better handled by the settings_resolver?
             singularity = dict(path=SingularityManager.CHECK_PATH)
+
         # default lmod settings
         if not lmod:
             lmod = dict(
+                # the default signals to the manager to detect lmod
                 root=LmodManager.CHECK_ROOT,
                 modulefiles='./modulefiles')
 
-        # SEQUENTIALLY CONNECT TO COMPONENTS
-        # beware the following except loops are hard to debug
-        debug = True
+        ### INSTALLERS
 
         """
-
+        # DEVELOPMENT
         # instantiate a connection to Singularity
         try: singularity_inst = Convey(
             cache=self.cache,
@@ -84,6 +91,7 @@ class UseCase(Handler):
         except Exception as e: 
             if debug: tracebacker(e)
             else: pass
+        """
 
         # instantiate a connection to Lmod
         try: lmod_inst = Convey(cache=self.cache,
@@ -91,10 +99,8 @@ class UseCase(Handler):
             )(LmodManager)(**lmod)
         # defer exceptions
         except Exception as e: 
-            if debug: tracebacker(e)
-            else: pass
-
-        """
+            tracebacker(e)
+            pass
 
         # include spack only if requested
         if spack:
@@ -102,58 +108,37 @@ class UseCase(Handler):
                 cache=self.cache,
                 _register_error=register_error
                 )(SpackManager)(**spack)
-            except Exception as e: 
-                if debug: tracebacker(e)
-                else: pass
-                # null value since this is optional
-                spack_inst = False
+            # null value since this is optional
+            except Exception as e: spack_inst = False
 
-        # consume and report the python errors
-        errors = self.cache.pop('errors',{})
+        # report the python errors
+        # note that errors remain in the cache until they are removed
+        #   by a refresh run that ends in e.g. report_ready
+        errors = self.cache.get('errors',{})
         for name,error in errors.items():
             print('error caught error during "%s"'%name)
-            print('\n'.join(error['formatted']).strip())
-            print('status resulting error was: %s'%error['result'])
+            if isinstance(error,dict):
+                print('\n'.join(error['formatted']).strip())
+                print('status python error: %s'%error['result'])
+            # if not a dict we send a string to explain the error
+            else: print('status received error: %s'%error)
 
-        #!!! # handle any errors above
-        #!!! #! standardize the error reporting flags?
-        #!!! has_singularity_error = self.cache.get('singularity_error',False)
-        #!!! has_lmod_error = self.cache.get('lmod_error',False)
-        #!!! if (has_singularity_error or has_lmod_error): 
+        # exit on error
         if errors:
             self._shutdown()
             # exceptions are too verbose so we tell user to edit and exit
             print(say('[CC]','mag_gray')+' '+say('[STATUS]','red_black')+
                 ' Edit %s and rerun to continue.'%cc_user)
-            sys.exit(1)
-
-        # check the modulefiles location
-        modulefiles_dn = os.path.realpath(
-            os.path.expanduser(lmod_inst.modulefiles))
-        if not os.path.isdir(modulefiles_dn):
-            print('status failed to find modulefiles directory')
-            print('status mkdir %s'%modulefiles_dn)
-            os.mkdir(modulefiles_dn)
-
-        # save lmod modulepath data to the cache
-        #! need a standardized way of reporting what needs to be added to shells
-        bashrc_subs = dict(root=lmod_inst.root,
-            modulefiles=modulefiles_dn)
-        self.cache['settings']['bashrc'] = {'instructions':(
-            'Run ./cc update_bashrc to add modules to your environment '
-            'automatically. Alternately, you can dd the items in the "mods" '
-            'list in the bashrc dictionary to '
-            'your ~/.bashrc file (be sure to remove yaml syntax). '
-            'Run `source ~/.bashrc` log back in to continue. '
-            'Either way, this step will make the `module` command available. '),
-            'mods':[i%bashrc_subs for i in self.BASHRC_MODS]}
+            # note that we do not show a real traceback on this exception
+            self.cache['traceback_off'] = True
+            raise Exception('exiting for user edits')
+        
         # save the case for later
         self.cache['case'] = {
-            'singularity':singularity_inst.abspath,
             'lmod':lmod_inst.root,
-            'modulefiles':modulefiles_dn}
+            'modulefiles':lmod_inst.modulefiles}
         # optional information
-        if spack_inst!=False:
+        if spack and spack_inst!=False:
             self.cache['case']['spack'] = spack_inst.abspath
 
         self._shutdown()
@@ -174,4 +159,3 @@ class Execute(Handler):
         print('warning bleeding edge is here ...')
         print('warning if you got here then we found the software we need')
         print('warning ready to do something with LUA files?')
-
