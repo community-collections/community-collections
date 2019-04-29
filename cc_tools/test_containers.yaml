@@ -1,0 +1,333 @@
+
+centos7_singularity3_rpm:
+  persist: true
+  site: "@deploy_site"
+  rebuild: false
+  dockerfile:
+    raw: |
+      # section: centos7
+      FROM centos:centos7
+      # section: centos7_dev
+      RUN yum update -y
+      RUN yum groupinstall -y 'Development Tools'
+      RUN yum install -y wget
+      RUN yum install -y which
+      RUN yum install -y vim
+      RUN yum install -y git
+      RUN yum install -y make
+      RUN yum install -y screen
+      # section: centos7_singularity3_reqs
+      RUN yum install -y openssl-devel 
+      RUN yum install -y libuuid-devel
+      RUN yum install -y libseccomp-devel
+      RUN yum install -y squashfs-tools
+      # section: singularity3_rpm
+      RUN yum install -y epel-release
+      RUN yum install -y golang
+      ENV VERSION=3.1.0
+      WORKDIR /tmp
+      RUN wget https://github.com/sylabs/singularity/releases/download/\
+      v${VERSION}/singularity-${VERSION}.tar.gz
+      RUN rpmbuild -tb singularity-${VERSION}.tar.gz
+      RUN rpm -ivh ~/rpmbuild/RPMS/x86_64/singularity-$VERSION-1.el7.x86_64.rpm
+      RUN rm -rf ~/rpmbuild singularity-$VERSION*.tar.gz
+      # section: make_user
+      RUN getent group 100 > /dev/null 2>&1 \
+          || (groupmod -g 100 users)
+      RUN useradd -m -u 1000 -g 100 user
+      RUN echo 'user:secret' | chpasswd
+      USER user
+      WORKDIR /home/user
+      # addendum
+      WORKDIR /home/user/extern
+  command: docker-compose run --service-ports deploy
+  compose:
+    version: '3'
+    services:
+      deploy:
+        privileged: true
+        entrypoint: ['/bin/bash']
+        build: .
+        image: factory:centos7_singularity3_rpm
+        container_name: cctest
+        volumes:
+          - ./:/home/user/extern
+
+stretch_singularity2:
+  persist: true
+  site: "@deploy_site"
+  rebuild: false 
+  dockerfile:
+    raw: |
+      # section: stretch
+      FROM debian:stretch
+      # section: debian_start
+      ARG DEBIAN_FRONTEND=noninteractive
+      RUN apt-get -y clean
+      RUN apt-get -y update
+      RUN apt-get install -y git make wget vim screen
+      RUN apt-get install -y procps
+      RUN apt-get install -y python python-dev
+      ENV PYTHONIOENCODING UTF-8
+      # section: debian_compilers
+      RUN apt-get install -y cmake
+      RUN apt-get install -y build-essential
+      RUN apt-get install -y m4
+      RUN apt-get install -y automake
+      RUN apt-get install -y libtool
+      # section: debian_mysql
+      RUN apt-get install -y mysql-server default-libmysqlclient-dev
+      # section: debian_shell_bash
+      SHELL ["/bin/bash", "--login", "-c"]
+      # section: singularity2
+      WORKDIR /root
+      RUN apt-get install -y squashfs-tools
+      RUN apt-get install -y libarchive-dev
+      RUN git clone https://github.com/singularityware/singularity.git
+      WORKDIR /root/singularity
+      RUN git checkout vault/release-2.6
+      RUN ./autogen.sh
+      RUN ./configure --prefix=/usr/local
+      RUN make
+      RUN make install
+      # section: make_user
+      RUN getent group 100 > /dev/null 2>&1 \
+          || (groupmod -g 100 users)
+      RUN useradd -m -u 1000 -g 100 user
+      RUN echo 'user:secret' | chpasswd
+      USER user
+      WORKDIR /home/user
+      # addendum
+      WORKDIR /home/rpb/extern
+  command: docker-compose run --service-ports deploy
+  compose:
+    version: '3'
+    services:
+      deploy:
+        privileged: true
+        entrypoint: ['/bin/bash']
+        build: .
+        image: factory:debian_singularity2
+        volumes:
+          - ./:/home/rpb/extern
+
+centos7_singularity3:
+  persist: true
+  site: "@deploy_site"
+  rebuild: false
+  dockerfile:
+    raw: |
+      # section: centos7
+      FROM centos:centos7
+      # section: centos7_dev
+      RUN yum update -y
+      RUN yum groupinstall -y 'Development Tools'
+      RUN yum install -y wget
+      RUN yum install -y which
+      RUN yum install -y vim
+      RUN yum install -y git
+      RUN yum install -y make
+      RUN yum install -y screen
+      # section: centos7_singularity3_reqs
+      # these requirements are absolutely necessary
+      RUN yum install -y openssl-devel
+      RUN yum install -y libuuid-devel
+      # not strictly necessary but mentioned in the docs
+      RUN yum install -y gpgme-devel
+      RUN yum install -y libseccomp-devel
+      RUN yum install -y squashfs-tools
+      # section: singularity3_source
+      ENV VERSION 1.11 
+      ENV OS linux 
+      ENV ARCH amd64
+      WORKDIR /tmp
+      RUN wget https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
+      RUN tar -C /usr/local -xzf go$VERSION.$OS-$ARCH.tar.gz
+      RUN echo 'export GOPATH=${HOME}/go' >> ~/.bashrc
+      RUN echo 'export PATH=/usr/local/go/bin:${PATH}:${GOPATH}/bin' >> ~/.bashrc
+      RUN source ~/.bashrc
+      RUN mkdir -p $GOPATH/src/github.com/sylabs
+      WORKDIR $GOPATH/src/github.com/sylabs
+      RUN git clone https://github.com/sylabs/singularity.git
+      WORKDIR $GOPATH/src/github.com/sylabs/singularity
+      RUN go get -u -v github.com/golang/dep/cmd/dep
+      WORKDIR $GOPATH/src/github.com/sylabs/singularity
+      RUN ./mconfig
+      RUN make -C builddir
+      RUN make -C builddir install
+      # section: make_user
+      RUN getent group 100 > /dev/null 2>&1 \
+          || (groupmod -g 100 users)
+      RUN useradd -m -u 1000 -g 100 user
+      RUN echo 'user:secret' | chpasswd
+      USER user
+      WORKDIR /home/user
+      # addendum
+      WORKDIR /home/user/extern
+  command: docker-compose run --service-ports deploy
+  compose:
+    version: '3'
+    services:
+      deploy:
+        privileged: true
+        entrypoint: ['/bin/bash']
+        build: .
+        image: factory:centos7_singularity3_rpm
+        volumes:
+          - ./:/home/user/extern
+
+centos76: 
+  persist: true
+  site: "@deploy_site"
+  rebuild: false
+  dockerfile:
+    raw: |
+      # section: centos7
+      FROM centos:centos7
+      # section: centos7_dev
+      RUN yum update -y
+      RUN yum groupinstall -y 'Development Tools'
+      RUN yum install -y wget
+      RUN yum install -y which
+      RUN yum install -y vim
+      RUN yum install -y git
+      RUN yum install -y make
+      RUN yum install -y screen
+  command: docker-compose run --service-ports deploy
+  compose:
+    version: '3'
+    services:
+      deploy:
+        privileged: true
+        entrypoint: ['/bin/bash']
+        build: .
+        image: factory:centos7.6
+
+centos76_user: 
+  persist: true
+  site: "@deploy_site"
+  rebuild: false
+  dockerfile:
+    raw: |
+      # section: centos7
+      FROM centos:centos7
+      # section: centos7_dev
+      RUN yum update -y
+      RUN yum groupinstall -y 'Development Tools'
+      RUN yum install -y wget
+      RUN yum install -y which
+      RUN yum install -y vim
+      RUN yum install -y git
+      RUN yum install -y make
+      RUN yum install -y screen
+      RUN yum install -y bzip2
+      # section: make_user
+      RUN getent group 100 > /dev/null 2>&1 \
+          || (groupmod -g 100 users)
+      RUN useradd -m -u 1000 -g 100 user
+      RUN echo 'user:secret' | chpasswd
+      USER user
+      WORKDIR /home/user
+      # addendum
+      WORKDIR /home/user/extern
+  command: docker-compose run --service-ports deploy
+  compose:
+    version: '3'
+    services:
+      deploy:
+        privileged: true
+        entrypoint: ['/bin/bash']
+        build: .
+        image: factory:centos7.6_user
+        volumes:
+          - ./:/home/user/extern
+
+test01:
+  #! previously centos_76_user_cc_min: 
+  persist: true
+  site: "@deploy_site"
+  rebuild: false
+  dockerfile:
+    raw: |
+      # section: centos7
+      FROM centos:centos7
+      # section: centos7_dev
+      RUN yum update -y
+      RUN yum groupinstall -y 'Development Tools'
+      RUN yum install -y wget
+      RUN yum install -y which
+      RUN yum install -y vim
+      RUN yum install -y git
+      RUN yum install -y make
+      RUN yum install -y screen
+      RUN yum install -y bzip2
+      # section: tcl-devel
+      RUN yum install -y tcl-devel
+      # section: make_user
+      RUN getent group 100 > /dev/null 2>&1 \
+          || (groupmod -g 100 users)
+      RUN useradd -m -u 1000 -g 100 user
+      RUN echo 'user:secret' | chpasswd
+      USER user
+      WORKDIR /home/user
+  command: docker-compose run --service-ports deploy
+  compose:
+    version: '3'
+    services:
+      deploy:
+        privileged: true
+        entrypoint: ['/bin/bash']
+        build: .
+        image: factory:centos7.6_user_cc_min
+        volumes:
+          - ./devspot/community-collections:/home/user/community-collections
+        environment:
+          - DISPLAY=docker.for.mac.host.internal:0
+
+test02: 
+  persist: true
+  site: "@deploy_site"
+  rebuild: false
+  dockerfile:
+    raw: |
+      # section: centos7
+      FROM centos:centos7
+      # section: centos7_dev
+      RUN yum update -y
+      RUN yum groupinstall -y 'Development Tools'
+      RUN yum install -y wget
+      RUN yum install -y which
+      RUN yum install -y vim
+      RUN yum install -y git
+      RUN yum install -y make
+      RUN yum install -y screen
+      # section: centos7_singularity3_reqs
+      # these requirements are absolutely necessary
+      RUN yum install -y openssl-devel
+      RUN yum install -y libuuid-devel
+      # not strictly necessary but mentioned in the docs
+      RUN yum install -y gpgme-devel
+      RUN yum install -y libseccomp-devel
+      RUN yum install -y squashfs-tools
+      # section: tcl-devel
+      RUN yum install -y tcl-devel
+      # section: make_user
+      RUN getent group 100 > /dev/null 2>&1 \
+          || (groupmod -g 100 users)
+      RUN useradd -m -u 1000 -g 100 user
+      RUN echo 'user:secret' | chpasswd
+      USER user
+      WORKDIR /home/user
+  command: docker-compose run --service-ports deploy
+  compose:
+    version: '3'
+    services:
+      deploy:
+        privileged: true
+        entrypoint: ['/bin/bash']
+        build: .
+        image: factory:cc_test02
+        volumes:
+          - ./devspot/community-collections:/home/user/community-collections
+        environment:
+          - DISPLAY=docker.for.mac.host.internal:0
