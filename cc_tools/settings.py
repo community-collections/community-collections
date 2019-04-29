@@ -15,20 +15,6 @@ specs = {
     # hardcoded by the cc wrapper for speed
     'envname':'community-collections'}
 
-# conda dependencies for CC
-conda_spec = """name: %s
-channels:
-  - conda-forge
-dependencies:
-  - python>=3.6
-  - pycurl
-  - pyyaml
-  - pip
-  - pip:
-    - nvchecker
-    - ipdb
-"""%specs['envname']
-
 default_bootstrap = """
 whitelist:
   julia: versionless

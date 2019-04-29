@@ -38,7 +38,8 @@ class Preliminary(Handler):
 
 class UseCase(Handler):
     """Clean up the user settings. Runs before Execute."""
-
+    # tracebacks during development hidden from the user
+    _debug = True
     def _shutdown(self):
         """
         End this session of the UseCase by updating the settings.
@@ -80,8 +81,15 @@ class UseCase(Handler):
 
         ### INSTALLERS
 
-        """
-        # DEVELOPMENT
+        # instantiate a connection to Lmod
+        try: lmod_inst = Convey(cache=self.cache,
+            _register_error=register_error
+            )(LmodManager)(**lmod)
+        # defer exceptions
+        except Exception as e: 
+            if self._debug: tracebacker(e)
+            pass
+
         # instantiate a connection to Singularity
         try: singularity_inst = Convey(
             cache=self.cache,
@@ -89,17 +97,7 @@ class UseCase(Handler):
             )(SingularityManager)(**singularity)
         # defer exceptions
         except Exception as e: 
-            if debug: tracebacker(e)
-            else: pass
-        """
-
-        # instantiate a connection to Lmod
-        try: lmod_inst = Convey(cache=self.cache,
-            _register_error=register_error
-            )(LmodManager)(**lmod)
-        # defer exceptions
-        except Exception as e: 
-            tracebacker(e)
+            if self._debug: tracebacker(e)
             pass
 
         # include spack only if requested
@@ -132,6 +130,8 @@ class UseCase(Handler):
             # note that we do not show a real traceback on this exception
             self.cache['traceback_off'] = True
             raise Exception('exiting for user edits')
+        # turn tracebacks on again if we complete the loop
+        else: self.cache['traceback_off'] = False
         
         # save the case for later
         self.cache['case'] = {
@@ -156,6 +156,4 @@ class Execute(Handler):
         """
         # separate the whitelist from the software settings
         self.whitelist = whitelist
-        print('warning bleeding edge is here ...')
-        print('warning if you got here then we found the software we need')
-        print('warning ready to do something with LUA files?')
+        print('status community-collections is ready!')

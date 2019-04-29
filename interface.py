@@ -11,6 +11,7 @@ Currently offering this to the user via: `alias cc="python $(pwd)/cc"`.
 
 import sys
 import os
+import glob
 
 import cc_tools
 from cc_tools.statetools import Parser
@@ -129,15 +130,29 @@ class Interface(Parser):
         # transmit variables to debug
         self.subshell = dict(me=me)
         # debug is also CLI function so no args
-        self.debug()
+        #! self.debug()
 
-    def update_bashrc(self):
+    def update_bashrc(self,explicit=False,profile='profile_cc.sh'):
+        """
+        Add changes to a bashrc file.
+        Note that the explicit flag will direct changes to a profile.
+        """
         self._get_settings()
         mods = self.cache.get('settings',{}).get('bashrc',{}).get('mods',[])
+        if not explicit: 
+            profile_detail = dict(
+                fn=os.path.abspath(os.path.expanduser(profile)),
+                mods=list(mods))
+            mods = ['source %s'%profile_detail['fn']]
+        else: profile_detail = None
         if mods:
             print('status proposed modifications to ~/.bashrc:')
             print('\n'.join(mods))
             if confirm('okay to add the above to your ~/.bashrc?',):
+                # if we divert changes to a profile then write it here
+                if profile_detail['mods']: 
+                    with open(profile_detail['fn'],'w') as fp:
+                        fp.write('\n'.join(profile_detail['mods']))
                 bashrc_fn = os.path.expanduser('~/.bashrc')
                 if os.path.isfile(bashrc_fn):
                     with open(bashrc_fn) as fp: text = fp.read()
@@ -146,6 +161,7 @@ class Interface(Parser):
                         fp.write(text)
                 print('status to continue, log in again or '
                     'run this: source ~/.bashrc')
+                #! should we record this in the cache?
                 if 'bashrc' in self.cache['settings']:
                     del self.cache['settings']['bashrc']
                 write_user_yaml(self.cache['settings'])
@@ -153,19 +169,30 @@ class Interface(Parser):
 
     def nuke(self):
         """Testing only! Reset things! Be careful!"""
+        import shutil
         print('status cleaning')
-        os.system('rm -rf '+' '.join([
+        fns = [i for j in [glob.glob(k) for k in [
             'miniconda','cc.yaml','__pycache__',
             'config.json','*.pyc','cache.json',
             'modules','stage','lmod','Miniconda*.sh','tmp',
-            ]))
-        os.system('mkdir tmp')
-        print('status done')
+            'spack','singularity',
+            ]] for i in j]
+        print('status removing: %s'%', '.join(fns))
+        if confirm('okay to remove the files above?',):
+            for fn in fns: 
+                shutil.rmtree(fn) if os.path.isdir(fn) else os.remove(fn)
+            os.mkdir('tmp')
+            print('status done')
 
     def showcache(self):
         self.cache._debug = False
         from cc_tools.stdtools import treeview
         treeview(self.cache,style='pprint')
+
+    def dummy(self):
+        self.cache['traceback_off'] = False
+        a = fdsfas
+        print('hi')
 
 if __name__=='__main__':
     Interface()

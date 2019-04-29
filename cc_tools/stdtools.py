@@ -84,7 +84,9 @@ def command_check(command,cwd=None):
             return proc.returncode
     except Exception as e: 
         print('warning caught exception on command_check: %s'%e)
-        return False
+        # we return an invalid bash state to ensure that it cannot match
+        #   the returncode on failures
+        return -1
 
 def bash(command,log=None,cwd=None,inpipe=None,scroll=True,tag=None,
 	announce=False,local=False,scroll_log=True):

@@ -197,13 +197,15 @@ class Parser:
                         sub.add_argument('--%s'%arg,dest=arg,
                             action='store_true')
                     sub.set_defaults(**{arg:val})
-                elif isinstance(val,str):
+                elif isinstance(val,str_types):
                     sub.add_argument('--%s'%arg,dest=arg,default=val,type=str,
                         help='Default for "%s": "%s".'%
                         (arg,str(val)))
-                else: raise Exception(('cannot automatically make a parser '
-                    'from argument to "%s": "%s" (default "%s")')%(
-                    name,arg,str(val)))
+                else: 
+                    #! development error if you use an invalid type in a parser
+                    raise Exception(('cannot automatically make a parser '
+                        'from argument to "%s": "%s" (default "%s")')%(
+                        name,arg,str(val)))
             # set the function
             sub.set_defaults(func=func)
         args = parser.parse_args()
