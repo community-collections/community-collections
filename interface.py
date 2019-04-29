@@ -177,11 +177,12 @@ class Interface(Parser):
             'modules','stage','lmod','Miniconda*.sh','tmp',
             'spack','singularity','profile_cc.sh',
             ]] for i in j]
+        self.cache = {}
         print('status removing: %s'%', '.join(fns))
         if confirm('okay to remove the files above?',):
             for fn in fns: 
                 shutil.rmtree(fn) if os.path.isdir(fn) else os.remove(fn)
-            os.mkdir('tmp')
+            #! os.mkdir('tmp')
             print('status done')
 
     def showcache(self):

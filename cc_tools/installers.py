@@ -99,7 +99,6 @@ mkdir -p $GOPATH/src/github.com/sylabs
 cd $GOPATH/src/github.com/sylabs
 git clone https://github.com/sylabs/singularity.git
 cd $GOPATH/src/github.com/sylabs/singularity
-
 go get -u -v github.com/golang/dep/cmd/dep
 cd $GOPATH/src/github.com/sylabs/singularity
 mkdir -p %(prefix)s
@@ -181,6 +180,8 @@ class LmodManager(Handler):
     # account for the removal of the lmod root path here
     lmod_bin_check = './lmod/lmod/libexec/lmod help'
     lmod_returncode = 0
+    # location for modulefiles to add to the module path
+    modulefiles = './modulefiles'
 
     def _check_lmod_prelim(self,path):
         """Check if spack directory exists."""
@@ -219,7 +220,7 @@ class LmodManager(Handler):
                     'Failed to install LUA.')
         print('status building lmod at %s (needs lua=%s)'%(path,needs_lua))
         shell_script(generic_install%dict(url=self.url_lmod,
-            prefix=path,subshell=subshell))
+            prefix=path,subshellf=subshell))
         self.root = path
 
     def _check_lmod(self,path):
@@ -235,17 +236,7 @@ class LmodManager(Handler):
         if '..' not in rel_path: self.root = rel_path
         # clear errors from previous runs
         self.cache['errors'].pop('lmod',None)
-        self.cache['settings']['lmod'] = {
-            'root':self.root,'modulefiles':self.modulefiles}
-
-    def _check_modulefiles(self,modulefiles):
-        # make a modulefiles location if absent
-        modulefiles_dn = os.path.realpath(
-            os.path.expanduser(modulefiles))
-        if not os.path.isdir(modulefiles_dn):
-            print('status failed to find modulefiles directory')
-            print('status mkdir %s'%modulefiles_dn)
-            os.mkdir(modulefiles_dn)
+        self.cache['settings']['lmod'] = {'root':self.root}
 
     def _detect_lmod(self):
         """
@@ -263,20 +254,17 @@ class LmodManager(Handler):
 
     ### interpret lmod settings (each method below reads possible inputs)
 
-    def error_null(self,error,**kwargs):
+    def error_null(self,error,build=None,root=None):
         """Ignore request if error present."""
+        #! handler with args error,**kwargs is broken; needs explicit list
+        #!   of all possible arguments to work. bugfix coming soon
         print(('warning lmod cannot be installed until the user edits %s')
             %cc_user)
         self._register_error(name='lmod',error=
             'The lmod section needs user edits.')
 
-    def build(self,build,modulefiles):
+    def build(self,build):
         """Request to build Lmod."""
-
-        # modulefiles have a separate folder
-        #! this is a design choice that needs to be revisited
-        self._check_modulefiles(modulefiles)
-        self.modulefiles = modulefiles
 
         # enforce lmod at the end of the path
         check_path = self._enforce_path(build)
@@ -332,10 +320,9 @@ class LmodManager(Handler):
                 self.ERROR_NOTE+' '+
                 'See ./cc showcache for details on the installation error')
 
-    def detect(self,root,modulefiles):
+    def detect(self,root):
         """Confirm that lmod exists in the path given by the user."""
         #! standardize the error messages because some are repeated
-        self.modulefiles = modulefiles
         if root==self.CHECK_ROOT:
             lmod_root = self._detect_lmod()
             if lmod_root:
@@ -349,14 +336,12 @@ class LmodManager(Handler):
                         error='Failed to find Lmod. Need build path from the user.')
                     self.cache['settings']['lmod'] = {
                         'build':'./lmod',
-                        'modulefiles':self.modulefiles,
                         'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
             else:
                 self._register_error(name='lmod',
                     error='Failed to find Lmod. Need build path from the user.')
                 self.cache['settings']['lmod'] = {
                     'build':'./lmod',
-                    'modulefiles':self.modulefiles,
                     'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
         else:
             self.root = self._enforce_path(root)
@@ -366,7 +351,6 @@ class LmodManager(Handler):
                 self.cache['settings']['lmod'] = {
                     # add in the default
                     'build':'./lmod',
-                    'modulefiles':self.modulefiles,
                     'error':self.ERROR_NOTE+' '+
                     self.ERROR_USER_ROOT_MISSING%root}
                 return
@@ -383,7 +367,6 @@ class LmodManager(Handler):
                 self.cache['settings']['lmod'] = {
                     #!! add in the default
                     'build':'./lmod',
-                    'modulefiles':self.modulefiles,
                     'error':self.ERROR_NOTE+' '+
                     self.ERROR_USER_ROOT_FAIL%root}
 
@@ -434,6 +417,13 @@ class SingularityManager(Handler):
             script=script_singularity3_install%dict(prefix=path_abs))
         shell_script(script)
         self.path = path
+
+    def error_null(self,error,path=None,build=None):
+        """Ignore request if error present."""
+        print(('warning singularity cannot be installed until the user edits %s')
+            %cc_user)
+        self._register_error(name='singularity',error=
+            'The singularity section needs user edits.')
 
     def detect(self,path):
         """Confirm that Singularity exists in the path given by the user."""
@@ -640,7 +630,7 @@ class SpackManager(Handler):
         self.cache['errors'].pop('spack',None)
         self.cache['settings']['spack'] = {'path':path}
 
-    def error_null(self,error,**kwargs):
+    def error_null(self,error,build=None,path=None):
         """Ignore request if error present."""
         print(('warning spack cannot be installed until the user edits %s')
             %cc_user)

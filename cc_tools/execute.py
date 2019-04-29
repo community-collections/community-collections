@@ -76,8 +76,7 @@ class UseCase(Handler):
         if not lmod:
             lmod = dict(
                 # the default signals to the manager to detect lmod
-                root=LmodManager.CHECK_ROOT,
-                modulefiles='./modulefiles')
+                root=LmodManager.CHECK_ROOT)
 
         ### INSTALLERS
 
@@ -135,8 +134,7 @@ class UseCase(Handler):
         
         # save the case for later
         self.cache['case'] = {
-            'lmod':lmod_inst.root,
-            'modulefiles':lmod_inst.modulefiles}
+            'lmod':lmod_inst.root}
         # optional information
         if spack and spack_inst!=False:
             self.cache['case']['spack'] = spack_inst.abspath
