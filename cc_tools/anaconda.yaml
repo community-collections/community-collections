@@ -1,0 +1,10 @@
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.6
+  - pycurl
+  - pyyaml
+  - pip
+  - pip:
+    - nvchecker
+    - ipdb
