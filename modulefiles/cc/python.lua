@@ -1,3 +1,6 @@
+help([[Community-collections base python.
+Note that this module only provides the base python (not the environment) which
+is used by community-collections. See cc/env for the full environment.]])
 -- supply the python that comes with the community-collections miniconda
 -- !? detect the current folder?
 local nameroot = '/home/user/community-collections/miniconda/'
