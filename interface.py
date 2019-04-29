@@ -175,7 +175,7 @@ class Interface(Parser):
             'miniconda','cc.yaml','__pycache__',
             'config.json','*.pyc','cache.json',
             'modules','stage','lmod','Miniconda*.sh','tmp',
-            'spack','singularity',
+            'spack','singularity','profile_cc.sh',
             ]] for i in j]
         print('status removing: %s'%', '.join(fns))
         if confirm('okay to remove the files above?',):

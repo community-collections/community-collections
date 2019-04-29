@@ -143,13 +143,13 @@ class CCStack:
         script = (install_miniconda%{'miniconda_path':os.path.realpath(
             os.path.expanduser(dependency_pathfinder(specs['miniconda'])))})
         return shell_script(script)
-    def conda_env(self,spec_fn='cc_tools/anaconda.yaml'):
+    def conda_env(self,spec_fn='cc_tools/conda_env.yaml'):
         """
         Install the conda environment.
         """
-        with open(spec_fn,'w') as fp:
-            fp.write(conda_spec)
-        bash(subshell('conda env create --file %s'%spec_fn))
+        spec_fn_abs = os.path.abspath(os.path.expanduser(spec_fn))
+        bash(subshell('conda env create --name %s --file %s'%(
+            specs['envname'],spec_fn)))
     def which(self):
         if not command_check('which -v')==0:
             raise Exception('cannot find `which` required for execution')
@@ -524,6 +524,86 @@ class SingularityManager(Handler):
             self.cache['settings']['lmod']['error'] = (
                 self.ERROR_NOTE+' '+
                 'See ./cc showcache for details on the installation error')
+
+class SingularityManagerX(Handler):
+    """
+    Interact with (detect and install) Singularity.
+    """
+    singularity_bin_name = 'singularity'
+    singularity_returncode = 1
+    CHECK_PATH = 'NEEDS_SINGULARITY_PATH'
+    BUILD_INSTRUCT_FAIL_START = 'ERROR: cannot find Singularity '
+    BUILD_INSTRUCT = (BUILD_INSTRUCT_FAIL_START+
+        'Replace this build message with `build: /path/to/new/install` if '
+        'you want us to install it. Otherwise supply a path to the binary '
+        'with `path: /path/to/singularity`.')
+    BUILD_INSTRUCT_FAIL_START = 'ERROR: cannot find Singularity '
+    BUILD_INSTRUCT_FAIL = (BUILD_INSTRUCT_FAIL_START+
+        'at user-supplied path: %s. '
+        'Replace this build message with `build: /path/to/new/install` if '
+        'you want us to install it. Otherwise supply a path to the binary '
+        'with `path: /path/to/singularity`.')
+
+    def install(self,build):
+        """Install singularity if we receive a build request."""
+        print('status installing singularity')
+        #! clumsy way to check both build instructions, even the path scold
+        if (build==self.BUILD_INSTRUCT 
+            or re.match(self.BUILD_INSTRUCT_FAIL_START,build)):
+            self.cache['singularity_error'] = 'needs_edit'
+            #! raise Exception('pending installation!')
+        #! needs installer here
+        #! assume relative path
+        print('status installing to %s'%os.path.join(os.getcwd(),build))
+        self.cache['singularity_error'] = 'needs_install'
+        self.abspath = 'PENDING_INSTALL'
+        #! raise Exception('pending installation!')
+
+    def detect(self,path):
+        """
+        Check singularity before continuing.
+        """
+        # CHECK_PATH is the default if no singularity entry (see UseCase.main)
+        if path==self.CHECK_PATH:
+            # check the path
+            singularity_path = (
+                command_check(self.singularity_bin_name)==
+                self.singularity_returncode)
+            # found singularity
+            if singularity_path:
+                self.abspath = bash('which %s'%self.singularity_bin_name,
+                    scroll=False)['stdout'].strip()
+                # since we found singularity we update the settings for user
+                self.cache['settings']['singularity'] = {
+                    'path':self.abspath} 
+                print('status found singularity at %s'%self.abspath)
+                return
+            # cannot find singularity and CHECK_PATH asked for it so we build
+            else: 
+                # redirect to the build instructions
+                self.cache['settings']['singularity'] = {
+                    'build':self.BUILD_INSTRUCT} 
+                # transmit the error to the UseCase parent
+                self.cache['singularity_error'] = 'needs_edit'
+                raise Exception('status failed to find Singularity')
+        # if the user has replaced the CHECK_PATH flag 
+        else:
+            singularity_path = (
+                command_check(self.singularity_bin_name)==
+                self.singularity_returncode)
+            # confirmed singularity hence no modifications needed
+            if singularity_path: 
+                self.abspath = path
+                print('status confirmed singularity at %s'%self.abspath)
+                return
+            else: 
+                # tell the user we could not find the path they sent
+                self.cache['settings']['singularity'] = {
+                    'build':self.BUILD_INSTRUCT_FAIL%path} 
+                # transmit the error to the UseCase parent
+                self.cache['singularity_error'] = 'needs_edit'
+                raise Exception(
+                    'status failed to find user-specified Singularity')
 
 class SpackManager(Handler):
     STATE_CONFIRM = 'needs_confirm'
