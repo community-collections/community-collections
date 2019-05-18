@@ -492,7 +492,7 @@ class SingularityManager(Handler):
             # stage some bashrc changes only if we just installed
             if 'bashrc_mods' not in self.cache: 
                 self.cache['bashrc_mods'] = []
-            build_bin_dn = os.path.abspath(os.path.expanduser(build))
+            build_bin_dn = os.path.join(os.path.abspath(os.path.expanduser(build)),'bin')
             mods = ['export PATH=%s:$PATH'%build_bin_dn]
             self.cache['bashrc_mods'].extend(mods)
 
