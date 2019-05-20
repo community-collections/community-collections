@@ -1,6 +1,8 @@
 channels:
   - conda-forge
 dependencies:
+  - jq
+  - lua>=5.3.4
   - python>=3.6
   - pycurl
   - pyyaml

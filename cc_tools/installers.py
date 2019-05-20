@@ -161,7 +161,9 @@ class LmodManager(Handler):
     url_lua = (
         #! note that this changed from 5.1.4.8 tar.gz to 5.1.4.9 and bz2
         #! changes to these locations can break the installer
+        #! note that the conda installer is working now, so this is deprecated
         'https://sourceforge.net/projects/lmod/files/lua-5.1.4.9.tar.bz2')
+    #! get the latest release instead: https://github.com/TACC/Lmod/releases
     url_lmod = 'http://sourceforge.net/projects/lmod/files/Lmod-8.0.tar.bz2'
     ERROR_NOTE = ('ERROR. '
         'Remove this note and follow these instructions to continue.')
@@ -206,12 +208,23 @@ class LmodManager(Handler):
         # we check for lua before installing to the conda environment
         needs_lua = False
         if not command_check('which lua')==0: needs_lua = True
-        if not shell_script(lua_check(*self.lua_reqs),bin='lua'):
+        """
+        We previously relied on lua from /usr/bin and included the installation
+        instructions below to install the lua associated with an lmod version
+        from the source via sourceforge. Now that conda can supply lua without
+        issue, this is unnecessary, however we still check for lfs and posix.
+        To do this, we use the hardcoded lua path inside the conda environment.
+        """
+        lua_bin = os.path.join(specs['miniconda'],
+            'envs',specs['envname'],'bin','lua')
+        if not os.path.isfile(lua_bin): lua_bin = 'lua'
+        # confirm the lua libraries
+        if not shell_script(lua_check(*self.lua_reqs),bin=lua_bin):
             print('status installing lua because we '
                 'could not find one of: %s'%str(self.lua_reqs))
             needs_lua = True
-        #! should we register this installation somewhere?
         if needs_lua:
+            #! should we register that a custom lua was installed?
             print('status installing lua')
             result = shell_script(generic_install%dict(url=self.url_lua,
                 prefix=self.cache['prefix']),subshell=subshell)
@@ -219,8 +232,17 @@ class LmodManager(Handler):
                 self._register_error(name='lmod-lua',error=
                     'Failed to install LUA.')
         print('status building lmod at %s (needs lua=%s)'%(path,needs_lua))
-        shell_script(generic_install%dict(url=self.url_lmod,
-            prefix=path,subshellf=subshell))
+        try:
+            # pull the latest lmod programatically from the github API
+            shell_script(generic_install%dict(url=(
+                "https://github.com/TACC/Lmod"
+                "/archive/$(curl -s %s | jq -r '.tag_name').tar.gz"%
+                'https://api.github.com/repos/TACC/Lmod/releases/latest'),
+                prefix=path,subshellf=subshell))
+        except:
+            # if we cannot get the latest, we use the verified version
+            shell_script(generic_install%dict(url=self.url_lmod,
+                prefix=path,subshellf=subshell))
         self.root = path
 
     def _check_lmod(self,path):
