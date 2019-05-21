@@ -190,10 +190,48 @@ class Interface(Parser):
         from cc_tools.stdtools import treeview
         treeview(self.cache,style='pprint')
 
-    def dummy(self):
+    def admin_check(self):
+        """
+        This command checks if the administrator has enabled singularity.
+        It provides a report for the commands to activate.
+        """
+        # catch errors here
         self.cache['traceback_off'] = False
-        a = fdsfas
-        print('hi')
+        import pwd
+        self._get_settings()
+        singularity_path = self.cache.get('settings',{}).get(
+            'singularity',{}).get('path',{})
+        if not singularity_path:
+            print('warning cannot find singularity/path in %s'%cc_user)
+        starter_fn = os.path.join(singularity_path,
+            'libexec','singularity','bin','starter-suid') 
+        st = os.stat(starter_fn)
+        correct_suid_bit = oct(st.st_mode)[-4:]=='4755'
+        if not correct_suid_bit:
+            print('warning the starter needs permissions 4755: %s'%starter_fn)
+        root_owns = pwd.getpwuid(os.stat(starter_fn).st_uid).pw_uid==0
+        if not root_owns:
+            print('warning root must own: %s'%starter_fn)
+        etc_ownership = {}
+        etc_sudo_owns = ['singularity.conf','capability.json','ecl.toml']
+        for fn in etc_sudo_owns:
+            fn_abs = os.path.join(singularity_path,'etc','singularity',fn)
+            owned = pwd.getpwuid(os.stat(fn_abs).st_uid).pw_uid==0
+            etc_ownership[fn_abs] = owned
+            if not owned: print('warning root must own: %s'%fn_abs)
+        recommend = []
+        for fn in etc_ownership:
+            if not etc_ownership[fn]:
+                recommend += ['chown root:root %s'%(fn)]
+        if not root_owns:
+            recommend += ['chown root:root %s'%(starter_fn)]
+        if not correct_suid_bit:
+            recommend += ['chmod 4755 %s'%(starter_fn)]
+        if recommend:
+            print('status run the following commands as '
+                'root to give singularity the standard permissions: ')
+            print('\n'+'\n'.join(recommend)+'\n')
+        else: print('status singularity is owned by root and ready for use')
 
 if __name__=='__main__':
     Interface()
