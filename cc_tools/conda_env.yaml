@@ -7,6 +7,7 @@ dependencies:
   - pycurl
   - pyyaml
   - pip
+  - openssl
   - pip:
     - nvchecker
     - ipdb

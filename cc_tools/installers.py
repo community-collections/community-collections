@@ -323,7 +323,8 @@ class LmodManager(Handler):
             if 'bashrc_mods' not in self.cache: 
                 self.cache['bashrc_mods'] = []
             init_fn = os.path.abspath(os.path.join(self.root,'lmod/init/bash'))
-            mods = ['export MODULEPATH=%s'%os.path.abspath(self.modulefiles),'source %s'%init_fn]
+            mods = ['export MODULEPATH=%s'%
+                os.path.abspath(self.modulefiles),'source %s'%init_fn]
             self.cache['bashrc_mods'].extend(mods)
 
         # exceptions are handled later by UseCase
@@ -433,17 +434,24 @@ class SingularityManager(Handler):
     def _install_singularity(self,path):
         """Installation procedure for singularity 3 from the docs."""
         path_abs = os.path.abspath(os.path.expanduser(path))
+        # we prepend the conda paths in case openssl-dev (openssl-devel)
+        #   are not installed on the host
+        path_prepend = ('\n'.join([
+            'export LIBRARY_PATH=%(lib)s:$LIBRARY_PATH',
+            'export C_INCLUDE_PATH=%(include)s:$C_INCLUDE_PATH',
+            ])%dict([(i,os.path.join(os.getcwd(),
+                specs['miniconda'],'envs',specs['envname'],i)) 
+                for i in ['lib','include']]))
         script_temp_build = script_temp_build_base%dict(
-            source_env=script_source_env)
-        script = script_temp_build%dict(
-            script=script_singularity3_install%dict(prefix=path_abs))
-        shell_script(script)
+            source_env=script_source_env)%dict(script=path_prepend+'\n'+
+                script_singularity3_install%dict(prefix=path_abs))
+        shell_script(script_temp_build)
         self.path = path
 
     def error_null(self,error,path=None,build=None):
         """Ignore request if error present."""
-        print(('warning singularity cannot be installed until the user edits %s')
-            %cc_user)
+        print(('warning singularity cannot be installed '
+            'until the user edits %s')%cc_user)
         self._register_error(name='singularity',error=
             'The singularity section needs user edits.')
 
@@ -700,4 +708,3 @@ class SpackManager(Handler):
         """
         """
         raise Exception('dev')
-
