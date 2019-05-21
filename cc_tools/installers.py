@@ -233,8 +233,16 @@ class LmodManager(Handler):
                     'Failed to install LUA.')
         print('status building lmod at %s (needs lua=%s)'%(path,needs_lua))
         try:
+            # prepend the conda path for tcl.h
+            #! this is repetitive with a similar block in singularity installer
+            path_prepend = ('\n'.join([
+                'export LIBRARY_PATH=%(lib)s:$LIBRARY_PATH',
+                'export C_INCLUDE_PATH=%(include)s:$C_INCLUDE_PATH',
+                ])%dict([(i,os.path.join(os.getcwd(),
+                    specs['miniconda'],'envs',specs['envname'],i)) 
+                    for i in ['lib','include']]))
             # pull the latest lmod programatically from the github API
-            shell_script(generic_install%dict(url=(
+            shell_script(path_prepend+'\n'+generic_install%dict(url=(
                 "https://github.com/TACC/Lmod"
                 "/archive/$(curl -s %s | jq -r '.tag_name').tar.gz"%
                 'https://api.github.com/repos/TACC/Lmod/releases/latest'),
