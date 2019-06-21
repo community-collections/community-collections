@@ -11,7 +11,23 @@ MINICONDA_PATH=$PWD/miniconda
 CC_ENV_NAME=community-collections
 PYENV=$MINICONDA_PATH/envs/$CC_ENV_NAME/bin/python
 # figure out which python to use 
-if [[ ! -f $PYENV ]]; then PYENV=python; fi
+if [[ ! -f $PYENV ]]; then 
+  unset PYENV
+  # search for common python aliases
+  calls=(python3 python2 python)
+  for call in ${calls[@]}; do
+    type $call &> /dev/null
+    has_python=$?
+    if [[ $has_python -eq 0 ]]; then
+      PYENV=$call
+      break
+    fi
+  done
+  if [[ -z $PYENV ]]; then
+    echo "[ERROR] cannot find python"
+    exit 1
+  fi
+fi
 
 # run within the full anaconda environment
 if [[ "$1" == "envrun" ]]; then
