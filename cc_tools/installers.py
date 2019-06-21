@@ -233,8 +233,16 @@ class LmodManager(Handler):
                     'Failed to install LUA.')
         print('status building lmod at %s (needs lua=%s)'%(path,needs_lua))
         try:
+            # prepend the conda path for tcl.h
+            #! this is repetitive with a similar block in singularity installer
+            path_prepend = ('\n'.join([
+                'export LIBRARY_PATH=%(lib)s:$LIBRARY_PATH',
+                'export C_INCLUDE_PATH=%(include)s:$C_INCLUDE_PATH',
+                ])%dict([(i,os.path.join(os.getcwd(),
+                    specs['miniconda'],'envs',specs['envname'],i)) 
+                    for i in ['lib','include']]))
             # pull the latest lmod programatically from the github API
-            shell_script(generic_install%dict(url=(
+            shell_script(path_prepend+'\n'+generic_install%dict(url=(
                 "https://github.com/TACC/Lmod"
                 "/archive/$(curl -s %s | jq -r '.tag_name').tar.gz"%
                 'https://api.github.com/repos/TACC/Lmod/releases/latest'),
@@ -323,7 +331,8 @@ class LmodManager(Handler):
             if 'bashrc_mods' not in self.cache: 
                 self.cache['bashrc_mods'] = []
             init_fn = os.path.abspath(os.path.join(self.root,'lmod/init/bash'))
-            mods = ['export MODULEPATH=%s'%os.path.abspath(self.modulefiles),'source %s'%init_fn]
+            mods = ['export MODULEPATH=%s'%
+                os.path.abspath(self.modulefiles),'source %s'%init_fn]
             self.cache['bashrc_mods'].extend(mods)
 
         # exceptions are handled later by UseCase
@@ -433,17 +442,24 @@ class SingularityManager(Handler):
     def _install_singularity(self,path):
         """Installation procedure for singularity 3 from the docs."""
         path_abs = os.path.abspath(os.path.expanduser(path))
+        # we prepend the conda paths in case openssl-dev (openssl-devel)
+        #   are not installed on the host
+        path_prepend = ('\n'.join([
+            'export LIBRARY_PATH=%(lib)s:$LIBRARY_PATH',
+            'export C_INCLUDE_PATH=%(include)s:$C_INCLUDE_PATH',
+            ])%dict([(i,os.path.join(os.getcwd(),
+                specs['miniconda'],'envs',specs['envname'],i)) 
+                for i in ['lib','include']]))
         script_temp_build = script_temp_build_base%dict(
-            source_env=script_source_env)
-        script = script_temp_build%dict(
-            script=script_singularity3_install%dict(prefix=path_abs))
-        shell_script(script)
+            source_env=script_source_env)%dict(script=path_prepend+'\n'+
+                script_singularity3_install%dict(prefix=path_abs))
+        shell_script(script_temp_build)
         self.path = path
 
     def error_null(self,error,path=None,build=None):
         """Ignore request if error present."""
-        print(('warning singularity cannot be installed until the user edits %s')
-            %cc_user)
+        print(('warning singularity cannot be installed '
+            'until the user edits %s')%cc_user)
         self._register_error(name='singularity',error=
             'The singularity section needs user edits.')
 
@@ -484,7 +500,7 @@ class SingularityManager(Handler):
                 return
             else: 
                 self._register_error(name='singularity',
-                    error=('Cannot confirm lmod '
+                    error=('Cannot confirm singularity '
                         'despite user-specified path: %s.')%self.path)
                 build_out = dict(self.default_build_conf)
                 build_out['error'] = self.ERROR_NOTE
@@ -533,89 +549,9 @@ class SingularityManager(Handler):
             # error message in the settings
             #! we need to interpret the error here
             #! add a more specific error (python error in the cache)
-            self.cache['settings']['lmod']['error'] = (
+            self.cache['settings']['singularity']['error'] = (
                 self.ERROR_NOTE+' '+
                 'See ./cc showcache for details on the installation error')
-
-class SingularityManagerX(Handler):
-    """
-    Interact with (detect and install) Singularity.
-    """
-    singularity_bin_name = 'singularity'
-    singularity_returncode = 1
-    CHECK_PATH = 'NEEDS_SINGULARITY_PATH'
-    BUILD_INSTRUCT_FAIL_START = 'ERROR: cannot find Singularity '
-    BUILD_INSTRUCT = (BUILD_INSTRUCT_FAIL_START+
-        'Replace this build message with `build: /path/to/new/install` if '
-        'you want us to install it. Otherwise supply a path to the binary '
-        'with `path: /path/to/singularity`.')
-    BUILD_INSTRUCT_FAIL_START = 'ERROR: cannot find Singularity '
-    BUILD_INSTRUCT_FAIL = (BUILD_INSTRUCT_FAIL_START+
-        'at user-supplied path: %s. '
-        'Replace this build message with `build: /path/to/new/install` if '
-        'you want us to install it. Otherwise supply a path to the binary '
-        'with `path: /path/to/singularity`.')
-
-    def install(self,build):
-        """Install singularity if we receive a build request."""
-        print('status installing singularity')
-        #! clumsy way to check both build instructions, even the path scold
-        if (build==self.BUILD_INSTRUCT 
-            or re.match(self.BUILD_INSTRUCT_FAIL_START,build)):
-            self.cache['singularity_error'] = 'needs_edit'
-            #! raise Exception('pending installation!')
-        #! needs installer here
-        #! assume relative path
-        print('status installing to %s'%os.path.join(os.getcwd(),build))
-        self.cache['singularity_error'] = 'needs_install'
-        self.abspath = 'PENDING_INSTALL'
-        #! raise Exception('pending installation!')
-
-    def detect(self,path):
-        """
-        Check singularity before continuing.
-        """
-        # CHECK_PATH is the default if no singularity entry (see UseCase.main)
-        if path==self.CHECK_PATH:
-            # check the path
-            singularity_path = (
-                command_check(self.singularity_bin_name)==
-                self.singularity_returncode)
-            # found singularity
-            if singularity_path:
-                self.abspath = bash('which %s'%self.singularity_bin_name,
-                    scroll=False)['stdout'].strip()
-                # since we found singularity we update the settings for user
-                self.cache['settings']['singularity'] = {
-                    'path':self.abspath} 
-                print('status found singularity at %s'%self.abspath)
-                return
-            # cannot find singularity and CHECK_PATH asked for it so we build
-            else: 
-                # redirect to the build instructions
-                self.cache['settings']['singularity'] = {
-                    'build':self.BUILD_INSTRUCT} 
-                # transmit the error to the UseCase parent
-                self.cache['singularity_error'] = 'needs_edit'
-                raise Exception('status failed to find Singularity')
-        # if the user has replaced the CHECK_PATH flag 
-        else:
-            singularity_path = (
-                command_check(self.singularity_bin_name)==
-                self.singularity_returncode)
-            # confirmed singularity hence no modifications needed
-            if singularity_path: 
-                self.abspath = path
-                print('status confirmed singularity at %s'%self.abspath)
-                return
-            else: 
-                # tell the user we could not find the path they sent
-                self.cache['settings']['singularity'] = {
-                    'build':self.BUILD_INSTRUCT_FAIL%path} 
-                # transmit the error to the UseCase parent
-                self.cache['singularity_error'] = 'needs_edit'
-                raise Exception(
-                    'status failed to find user-specified Singularity')
 
 class SpackManager(Handler):
     STATE_CONFIRM = 'needs_confirm'
@@ -700,4 +636,3 @@ class SpackManager(Handler):
         """
         """
         raise Exception('dev')
-
