@@ -54,6 +54,9 @@ class UseCase(Handler):
         """
         mods = self.cache.pop('bashrc_mods',[])
         if mods:
+            # add modifications to existing ones in the settings
+            mods_prev = self.cache['settings'].get('bashrc',{}).get('mods',[])
+            mods = mods_prev + mods
             self.cache['settings']['bashrc'] = {'instructions':(
                 'Run ./cc update_bashrc to add modules to your environment '
                 'automatically. Alternately, you can add the items in the '
