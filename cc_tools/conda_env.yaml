@@ -8,6 +8,7 @@ dependencies:
   - pyyaml
   - pip
   - openssl
+  #! libuuid was included here for testing, possibly related to singularity?
   - pip:
     - nvchecker
     - ipdb
