@@ -57,14 +57,46 @@ script_temp_build_env = script_temp_build_base%dict(
 
 # installation method for miniconda
 install_miniconda = script_temp_build%dict(script="""
-wget --progress=bar:force https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+wget --no-check-certificate --progress=bar:force https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p %(miniconda_path)s -u
 """)
+
+# manage LD_LIBRARY_PATH for miniconda
+conda_activate_ld_path = """#!/bin/bash
+ADDS=$CONDA_PREFIX/lib
+# append to the library path if absent
+if [[ ":$LD_LIBRARY_PATH:" != *":$ADDS:"* ]]; then
+    additions=${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$ADDS
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$ADDS
+fi
+# hardcode the library dependencies here
+#! this needs review in case it conflicts with the system libraries
+#!   which would be apparent if you get a libtcl error
+if [[ ":$LD_RUN_PATH" != *":$ADDS:"* ]]; then
+    additions=${LD_RUN_PATH:+$LD_RUN_PATH:}$ADDS
+    export LD_RUN_PATH=${LD_RUN_PATH:+$LD_RUN_PATH:}$ADDS
+fi
+"""
+conda_deactivate_ld_path = """#!/bin/bash
+pathremove () {
+  local IFS=':'
+  local NEWPATH
+  local DIR
+  local PATHVARIABLE=${2:-PATH}
+  for DIR in ${!PATHVARIABLE} ; do
+    if [ "$DIR" != "$1" ] ; then
+      NEWPATH=${NEWPATH:+$NEWPATH:}$DIR
+    fi
+  done
+  export $PATHVARIABLE="$NEWPATH"
+}
+pathremove $CONDA_PREFIX/lib LD_LIBRARY_PATH
+"""
 
 # generic configure-make script
 generic_install = script_temp_build_env%dict(script="""
 URL=%(url)s
-wget --progress=bar:force $URL
+wget --no-check-certificate --progress=bar:force $URL
 SOURCE_FN=${URL##*/}
 DN=$(tar tf $SOURCE_FN | head -1 | cut -f1 -d"/")
 tar xf $SOURCE_FN
@@ -90,7 +122,7 @@ end
 # install singularity 3
 script_singularity3_install = """
 export VERSION=1.11 OS=linux ARCH=amd64
-wget --progress=bar:force https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
+wget --no-check-certificate --progress=bar:force https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
 tar xf go$VERSION.$OS-$ARCH.tar.gz --checkpoint=.100 && echo
 cd go
 export PATH=$(realpath .)/bin:$PATH
@@ -146,9 +178,20 @@ class CCStack:
         """
         Install the conda environment.
         """
+
         spec_fn_abs = os.path.abspath(os.path.expanduser(spec_fn))
         bash(subshell('conda env create --name %s --file %s'%(
             specs['envname'],spec_fn)))
+        env_dn_base = os.path.join(specs['miniconda'],'envs',specs['envname'])
+        env_dn_activate = os.path.join(env_dn_base,'etc','conda','activate.d')
+        os.makedirs(env_dn_activate)
+        with open(os.path.join(env_dn_activate,'env_vars.sh'),'w') as fp:
+            fp.write(conda_activate_ld_path)
+        env_dn_deactivate = os.path.join(
+            env_dn_base,'etc','conda','deactivate.d')
+        os.makedirs(env_dn_deactivate)
+        with open(os.path.join(env_dn_deactivate,'env_vars.sh'),'w') as fp:
+            fp.write(conda_deactivate_ld_path)
     def which(self):
         if not command_check('which -v')==0:
             raise Exception('cannot find `which` required for execution')
@@ -509,7 +552,6 @@ class SingularityManager(Handler):
 
     def build(self,build):
         """Build singularity."""
-
         # check if already built and we lost the config
         checked = self._check_singularity(build)
         if checked:
@@ -530,7 +572,8 @@ class SingularityManager(Handler):
             # stage some bashrc changes only if we just installed
             if 'bashrc_mods' not in self.cache: 
                 self.cache['bashrc_mods'] = []
-            build_bin_dn = os.path.join(os.path.abspath(os.path.expanduser(build)),'bin')
+            build_bin_dn = os.path.join(os.path.abspath(
+                os.path.expanduser(build)),'bin')
             mods = ['export PATH=%s:$PATH'%build_bin_dn]
             self.cache['bashrc_mods'].extend(mods)
 

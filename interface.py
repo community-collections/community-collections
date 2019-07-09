@@ -156,7 +156,7 @@ class Interface(Parser):
                 bashrc_fn = os.path.expanduser('~/.bashrc')
                 if os.path.isfile(bashrc_fn):
                     with open(bashrc_fn) as fp: text = fp.read()
-                    text += '\n'+'\n'.join(mods)
+                    text += '\n# community-collections\n'+'\n'.join(mods)+'\n'
                     with open(bashrc_fn,'w') as fp: 
                         fp.write(text)
                 print('status to continue, log in again or '

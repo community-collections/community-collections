@@ -1,14 +1,14 @@
-channels:
-  - conda-forge
 dependencies:
+  - libuuid
   - jq
-  - lua>=5.3.4
+  - conda-forge::lua>=5.3.4
   - python>=3.6
   - pycurl
   - pyyaml
   - pip
   - openssl
   #! libuuid was included here for testing, possibly related to singularity?
+  - intel::tcl
   - pip:
     - nvchecker
     - ipdb
