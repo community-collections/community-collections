@@ -13,13 +13,17 @@ specs = {
     'miniconda':'./miniconda',
     'conda_activator':'etc/profile.d/conda.sh',
     # hardcoded by the cc wrapper for speed
-    'envname':'community-collections'}
+    'envname':'community-collections',
+    #! under development. where we dump the images
+    #! 'image_cache_spot':'./cache'
+    }
 
+# this default is used by kickstart_yaml
 default_bootstrap = """
 whitelist:
   julia: versionless
   tensorflow: 666.6
-#! note that we will include singularity, lmod, etc keys as well
+images: ~/.cc_images
 """.strip()
 
 #! other (?) default parameters

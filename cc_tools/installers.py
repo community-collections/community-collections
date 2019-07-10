@@ -91,6 +91,7 @@ pathremove () {
   export $PATHVARIABLE="$NEWPATH"
 }
 pathremove $CONDA_PREFIX/lib LD_LIBRARY_PATH
+pathremove $CONDA_PREFIX/lib LD_RUN_PATH
 """
 
 # generic configure-make script
@@ -376,6 +377,8 @@ class LmodManager(Handler):
             init_fn = os.path.abspath(os.path.join(self.root,'lmod/init/bash'))
             mods = ['export MODULEPATH=%s'%
                 os.path.abspath(self.modulefiles),'source %s'%init_fn]
+            # Lmod also needs to know the cc root for some of our modulefiles
+            mods += ['export _COMCOL_ROOT="%s"'%os.realpath(os.getcwd())]
             self.cache['bashrc_mods'].extend(mods)
 
         # exceptions are handled later by UseCase
