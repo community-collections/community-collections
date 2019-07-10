@@ -577,8 +577,11 @@ class SingularityManager(Handler):
                 self.cache['bashrc_mods'] = []
             build_bin_dn = os.path.join(os.path.abspath(
                 os.path.expanduser(build)),'bin')
-            mods = ['export PATH=%s:$PATH'%build_bin_dn]
-            self.cache['bashrc_mods'].extend(mods)
+            #! adding singularity to profile_cc.sh is deprecated because
+            #!   the modulefiles themselves can load the module (cc/singularity)
+            if False:
+                mods = ['export PATH=%s:$PATH'%build_bin_dn]
+                self.cache['bashrc_mods'].extend(mods)
 
         # exceptions are handled later by UseCase
         #! note that the entire construction of SingularityManager is

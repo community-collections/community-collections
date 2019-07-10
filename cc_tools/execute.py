@@ -11,6 +11,7 @@ Handles the transformation of settings files (the YAML file) to actions.
 
 import os
 import sys
+import re
 from . import stdtools
 from .stdtools import Handler
 from .stdtools import tracebacker
@@ -21,6 +22,7 @@ from .installers import LmodManager
 from .installers import SpackManager
 from .misc import write_user_yaml
 from .settings import cc_user
+from .stdtools import bash
 
 def register_error(self,name,error):
     """
@@ -136,15 +138,21 @@ class UseCase(Handler):
         else: self.cache['traceback_off'] = False
 
         # confirm essential modulefiles
-        #! hardcoding the modulefile location for now
-        singularity_module_fn = 'modulefiles/singularity.lua'
         singularity_modulefile = [
             'help([[ Singularity installed by community-collections ]])',
             'prepend_path("PATH","%s")'%
-                os.path.join(singularity_inst.path,'bin')]
+                os.path.join(os.path.realpath(singularity_inst.path),'bin')]
+        # infer the version from singularity
+        #! should this be done with another version checker?
+        result = bash('./singularity/bin/singularity version',scroll=False)
+        try: version = re.match(r'^(\d+\.\d+(?:\.\d+))',result['stdout']).group(1)
+        except: raise Exception('failed to infer Singularity version')
+        singularity_module_dn = 'modulefiles/cc/singularity'
+        if not os.path.isdir(singularity_module_dn): 
+            os.makedirs(singularity_module_dn)
+        singularity_module_fn = 'modulefiles/cc/singularity/%s.lua'%version
         with open(singularity_module_fn,'w') as fp:
             fp.write('\n'.join(singularity_modulefile))
-        
         # save the case for later
         self.cache['case'] = {
             'lmod':lmod_inst.root,
@@ -153,7 +161,6 @@ class UseCase(Handler):
         # optional information
         if spack and spack_inst!=False:
             self.cache['case']['spack'] = spack_inst.abspath
-
         self._shutdown()
         # pass the arguments through
         return kwargs
