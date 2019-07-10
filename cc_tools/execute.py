@@ -199,7 +199,7 @@ if mode()=="load" then
         remove_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),"miniconda/envs/community-collections/bin"))
         io.stderr:write("[CC] downloaded the image: " .. target_fn .. "\\n")
     end
-    set_shell_function('%(bin_name)s',"singularity run " .. target_fn,"singularity run " .. target_fn)
+    set_shell_function('%(bin_name)s',"singularity exec " .. target_fn .. ' %(bin_name)s "$@"',"singularity exec " .. target_fn .. '%(bin_name)s "$*"')
 end
 """
 
@@ -223,7 +223,8 @@ class ModuleFileBase(Handler):
         detail['target'] = 'julia.sif'
         #! detail['source'] = 'library://sylabs/examples/julia:latest'
         detail['source'] = 'docker://julia'
-        detail['bin_name'] = 'latest'
+        detail['bin_name'] = 'julia'
+        modulefile_name = 'latest'
         """
         modulefiles:
             1. base modulefile for latest links to a version number
@@ -242,7 +243,7 @@ class ModuleFileBase(Handler):
             see "whitelist_basic" template above
         """
         is_tcl,text = False,whitelist_basic
-        fn = os.path.join(dn,'%s%s'%(name,'.lua' if not is_tcl else ''))
+        fn = os.path.join(dn,'%s%s'%(modulefile_name,'.lua' if not is_tcl else ''))
         with open(fn,'w') as fp:
             fp.write(text%detail)
 
