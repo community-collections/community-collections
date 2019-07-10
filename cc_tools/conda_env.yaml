@@ -9,6 +9,7 @@ dependencies:
   - openssl
   #! libuuid was included here for testing, possibly related to singularity?
   - intel::tcl
+  - conda-forge::squashfs-tools
   - pip:
     - nvchecker
     - ipdb
