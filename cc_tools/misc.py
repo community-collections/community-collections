@@ -79,7 +79,7 @@ def enforce_env():
             'kickstart with: ./cc bootstrap')%sys.executable)
     else: return os.path.sep.join([miniconda_root,'envs',specs['envname']])
 
-def shell_script(script,subshell=None,bin='bash'):
+def shell_script(script,subshell=None,bin='bash',strict=True):
     """Run an anonymous bash script."""
     if not subshell: subshell = lambda x:x
     out = script.strip()

@@ -134,10 +134,22 @@ class UseCase(Handler):
             raise Exception('exiting for user edits')
         # turn tracebacks on again if we complete the loop
         else: self.cache['traceback_off'] = False
+
+        # confirm essential modulefiles
+        #! hardcoding the modulefile location for now
+        singularity_module_fn = 'modulefiles/singularity.lua'
+        singularity_modulefile = [
+            'help([[ Singularity installed by community-collections ]])',
+            'prepend_path("PATH","%s")'%
+                os.path.join(singularity_inst.path,'bin')]
+        with open(singularity_module_fn,'w') as fp:
+            fp.write('\n'.join(singularity_modulefile))
         
         # save the case for later
         self.cache['case'] = {
-            'lmod':lmod_inst.root}
+            'lmod':lmod_inst.root,
+            'modulefiles':lmod_inst.modulefiles,
+            'singularity':singularity_inst.path,}
         # optional information
         if spack and spack_inst!=False:
             self.cache['case']['spack'] = spack_inst.abspath
@@ -146,15 +158,102 @@ class UseCase(Handler):
         # pass the arguments through
         return kwargs
 
+### Modulefile Templates
+
+whitelist_basic = """
+local images_dn = "%(image_spot)s"
+local target = "%(target)s"
+local source = "%(source)s"
+
+load('singularity')
+
+function resolve_tilde(s)
+    return(s:gsub("^~",os.getenv("HOME")))
+end
+
+local images_dn_abs = resolve_tilde(images_dn)
+local target_fn = pathJoin(images_dn_abs,target)
+
+if mode()=="load" then
+    if lfs.attributes(images_dn_abs,'mode')==nil then
+        io.stderr:write("[CC] making a cache directory: " .. images_dn_abs .. "\\n")
+        lfs.mkdir(images_dn_abs)
+    end
+    if lfs.attributes(target_fn,'mode')==nil then
+        -- cc/env includes squashfs tools
+        -- !! conda.lua and env.lua were conflicting so I hardcoded one in the other
+        load('cc/env')
+        io.stderr:write("[CC] fetching " .. target .. "\\n")
+        local cmd = 'singularity pull ' .. target_fn .. ' ' .. source
+        execute {cmd=cmd,modeA={"load"}}
+        -- !! should we conditionally unload this if it was not loaded before, for opaqueness?
+        unload('cc/env')
+    end
+    set_shell_function('%(bin_name)s',"singularity run " .. target_fn,"singularity run " .. target_fn)
+end
+"""
+
+class ModuleFileBase(Handler):
+    _internals = {'name':'_name','meta':'meta'}
+    @property
+    def image_spot(self):
+        #! no init for Handler means this is the best way to get the image spot
+        #! self.images = Convey(cache=self.cache)(ImageCache)()
+        return self.cache['settings']['images']
+    
+    def versionless(self,name,versionless=True):
+        #! clumsy. replace 'julia: versionless' with a subdict?
+        if not versionless: raise Exception('handler call went awry')
+        # make the directory
+        #! alternate file structure with compiler versions?
+        dn = os.path.join(self.cache['case']['modulefiles'],name)
+        if not os.path.isdir(dn): os.mkdir(dn)
+        detail = dict(image_spot=self.image_spot)
+        #! hardcoded example during development
+        detail['target'] = 'julia.sif'
+        #! detail['source'] = 'library://sylabs/examples/julia:latest'
+        detail['source'] = 'docker://julia'
+        detail['bin_name'] = 'julia'
+        """
+        modulefiles:
+            1. base modulefile for latest links to a version number
+            2. version number linked to generic
+            3. generic modulefile infers its name and does the right singularity pulll
+        questions
+            how does the generic modulefile know it's name?
+            how does it know where to do the pull from? from cc.yaml? from an internal toc?
+            how does it check the cache location?
+        note that we need lua functions that answer all of these questions
+        pseudocode for the modulefile:
+            on load, make a cache directory if absent and run singularity pull
+            then add a shell function
+            to handle versions, inject the version into the download image file name
+            then use symbolic links for the version number and the latest
+            see "whitelist_basic" template above
+        """
+        is_tcl,text = False,whitelist_basic
+        fn = os.path.join(dn,'%s%s'%(name,'.lua' if not is_tcl else ''))
+        with open(fn,'w') as fp:
+            fp.write(text%detail)
+
 class Execute(Handler):
     """
     The main execution loop. "Runs" the user setting file.
     Always decorate via: `Execute = Convey(state=state)(Execute)`
     """
-    def whitelist(self,whitelist):
+    def whitelist(self,whitelist,images):
         """
         Handle the whitelist scenario.
         """
         # separate the whitelist from the software settings
         self.whitelist = whitelist
+        # build modulefiles for everything on the whitelist
+        for key,val in self.whitelist.items():
+            # base case in which there is no subdict and we ask for versionless
+            if val=='versionless':
+                # convey the state/cache for global settings
+                Convey(cache=self.state)(ModuleFileBase)(
+                    name=key,versionless=True).solve
+            #!!! development
+            else: print('warning cannot process: %s,%s'%(key,str(val)))
         print('status community-collections is ready!')

@@ -190,7 +190,7 @@ class Interface(Parser):
         from cc_tools.stdtools import treeview
         treeview(self.cache,style='pprint')
 
-    def admin_check(self):
+    def admin_check(self,force=False):
         """
         This command checks if the administrator has enabled singularity.
         It provides a report for the commands to activate.
@@ -225,12 +225,21 @@ class Interface(Parser):
                 recommend += ['chown root:root %s'%(fn)]
         if not root_owns:
             recommend += ['chown root:root %s'%(starter_fn)]
-        if not correct_suid_bit:
+        # if root does not own the suid file then we must also chmod
+        #   because the ownership change will drop the suid bit
+        if not correct_suid_bit or not root_owns:
             recommend += ['chmod 4755 %s'%(starter_fn)]
         if recommend:
             print('status run the following commands as '
                 'root to give singularity the standard permissions: ')
             print('\n'+'\n'.join(recommend)+'\n')
+            if force:
+                print('status attempting to run the commands above')
+                from cc_tools.misc import shell_script
+                result = shell_script('\n'.join(recommend))
+                if not result:
+                    #! under development
+                    raise Exception('setting admin rights failed')
         else: print('status singularity is owned by root and ready for use')
 
 if __name__=='__main__':
