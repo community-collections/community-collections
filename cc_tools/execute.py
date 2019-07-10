@@ -151,7 +151,7 @@ class Execute(Handler):
     The main execution loop. "Runs" the user setting file.
     Always decorate via: `Execute = Convey(state=state)(Execute)`
     """
-    def whitelist(self,whitelist):
+    def whitelist(self,whitelist,images):
         """
         Handle the whitelist scenario.
         """
