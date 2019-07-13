@@ -21,8 +21,11 @@ from .installers import SingularityManager
 from .installers import LmodManager
 from .installers import SpackManager
 from .misc import write_user_yaml
-from .settings import cc_user
+from .settings import cc_user,default_modulefile_settings
 from .stdtools import bash
+from .modulefile_templates import modulefile_basic
+import urllib,json
+import urllib.request
 
 def register_error(self,name,error):
     """
@@ -67,10 +70,18 @@ class UseCase(Handler):
                 'Run `source ~/.bashrc` or log in again to use CC properly. '),
                 'mods':mods}
 
-    def main(self,singularity=None,lmod=None,spack=None,**kwargs):
+    def main(self,
+        singularity=None,lmod=None,spack=None,module_settings=None,
+        **kwargs):
         print('status inferring use case')
 
         ### DEFAULTS
+
+        # default module configuration
+        if not module_settings:
+            module_settings = default_modulefile_settings
+        # module settings are saved in the state/cache
+        self.cache['module_settings'] = module_settings
 
         # default singularity settings
         if not singularity:
@@ -165,87 +176,142 @@ class UseCase(Handler):
         # pass the arguments through
         return kwargs
 
-### Modulefile Templates
+class VersionCheck(Handler):
+    _internals = {'name':'_name','meta':'meta'}
+    def _version_number_compare(self,v1,v2):
+        # via https://stackoverflow.com/questions/1714027
+        def normalize(v):
+            return [int(x) for x in re.sub(r'(\.0+)*$','', v).split(".")]
+        # cmp is gone in python 3
+        cmp = lambda a,b: (a > b) - (a < b)
+        return cmp(normalize(v1),normalize(v2))
+    def _version_check(self,version_this,op,version):
+        return not (
+            (op=='=' and not self._version_number_compare(version_this,version)==0) or
+            (op=='>' and not self._version_number_compare(version_this,version)>0) or
+            (op=='>=' and not self._version_number_compare(version_this,version)>=0))
+    def _version_syntax(self,req):
+        regex_version = '^(=|>=|>)(.*?)$'
+        op,version = None,0
+        match = re.match(regex_version,req)
+        if match: op,version = re.match(regex_version,req).groups()
+        return op,version
+    def _extract_number(self,result):
+        items = []
+        for i in result:
+            match = re.match(r'^([\d\.]+)(.*?)$',i['name'])
+            if match: reduced = match.groups()
+            else: reduced = (i['name'],)
+            items.append(reduced)
+        return items
+    def _check_version(self,splits,target,prefer_no_suffix=True):
+        op,version = self._version_syntax(target)
+        if op==None: op = "=="
+        candidates = []
+        for split in splits:
+            # the number extracter tries to ignore suffixes i.e. 1.2.3-wheezy
+            this = split[0]
+            if (re.match(r'^[\d\.]+$',this) and
+                self._version_check(this,op,version)):
+                # insist on clean version numbers
+                if not prefer_no_suffix or split[1]=='':
+                    candidates.append(''.join(split))
+                else: pass
+        return candidates
+    def docker(self,name,docker_version,prefer_no_suffix=True):
+        """Check the dockerhub registry."""
+        url = "https://registry.hub.docker.com/v1/repositories/%s/tags"%name
+        response = urllib.request.urlopen(url)
+        result = json.load(response)
+        # we split the version to ignore suffixes
+        splits = self._extract_number(result)
+        # compare the requested version against the splits
+        candidates = self._check_version(splits=splits,target=docker_version,
+            prefer_no_suffix=prefer_no_suffix)
+        return candidates
+    def shub(self,shub_version):
+        return shub_version
 
-whitelist_basic = """
-local images_dn = "%(image_spot)s"
-local target = "%(target)s"
-local source = "%(source)s"
+class PrepModuleRequest(Handler):
+    _internals = {'name':'_name','meta':'meta'}
+    def main(self,name,detail):
+        """
+        Requested modules are pre-processed here. This is largely designed to
+        apply defaults and prepare them for processing by ModuleRequest.
+        """
+        result = {}
+        # when detail is not a dict we assume it is the version
+        if not isinstance(detail,dict):
+            result['version'] = detail
+            result['name'] = name
+        # if the detail is a dict then it passes through
+        else: 
+            result['name'] = name
+            if name in detail: 
+                raise Exception('cannopt use "name" in a module request')
+            result.update(**detail)
+        return result
 
-load('cc/singularity')
-
-function resolve_tilde(s)
-    return(s:gsub("^~",os.getenv("HOME")))
-end
-
-local images_dn_abs = resolve_tilde(images_dn)
-local target_fn = pathJoin(images_dn_abs,target)
-
-if mode()=="load" then
-    if lfs.attributes(images_dn_abs,'mode')==nil then
-        io.stderr:write("[CC] making a cache directory: " .. images_dn_abs .. "\\n")
-        lfs.mkdir(images_dn_abs)
-    end
-    if lfs.attributes(target_fn,'mode')==nil then
-        -- if squashfs comes from cc/env we prepend the path here
-        -- this is a hack in place of a ml cc/env which would be much more elegant but could not be unloaded
-        -- utterly failed to load cc/env and unload it. something appears to be asynchronous (beyond just the lmod execute)
-        append_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),"miniconda/envs/community-collections/bin"))
-        local cmd = 'singularity pull ' .. target_fn .. ' ' .. source
-        -- execute {cmd=cmd,modeA={"load"}}
-		os.execute(cmd)
-        -- cleanup the squashfs hack (note: it would be nice to only remove this 
-        --   if it was not in there before to avoid conflicts with cc/env)
-        remove_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),"miniconda/envs/community-collections/bin"))
-        io.stderr:write("[CC] downloaded the image: " .. target_fn .. "\\n")
-    end
-    set_shell_function('%(bin_name)s',"singularity exec " .. target_fn .. ' %(bin_name)s "$@"',"singularity exec " .. target_fn .. '%(bin_name)s "$*"')
-end
-"""
-
-class ModuleFileBase(Handler):
+class ModuleRequest(Handler):
     _internals = {'name':'_name','meta':'meta'}
     @property
-    def image_spot(self):
-        #! no init for Handler means this is the best way to get the image spot
-        #! self.images = Convey(cache=self.cache)(ImageCache)()
-        return self.cache['settings']['images']
-    
-    def versionless(self,name,versionless=True):
-        #! clumsy. replace 'julia: versionless' with a subdict?
-        if not versionless: raise Exception('handler call went awry')
-        # make the directory
-        #! alternate file structure with compiler versions?
+    def image_spot(self): return self.cache['settings']['images']
+    def _write_modulefile(self,dn,fn,text,is_tcl=False):
+        # write the modulefile
+        fn = '%s%s'%(fn,'.lua' if not is_tcl else '')
+        fn = os.path.join(dn,fn)
+        with open(fn,'w') as fp: fp.write(text)
+    def singularity_pull(self,name,source=None,
+        version='latest',shell=None):
+        """Develop a singularity pull function."""
+        # always use lua
+        is_tcl,text = False,modulefile_basic
+
+        # prepare the spot for the image
+        if not source: source = self.cache['module_settings']['source']
         dn = os.path.join(self.cache['case']['modulefiles'],name)
         if not os.path.isdir(dn): os.mkdir(dn)
         detail = dict(image_spot=self.image_spot)
-        #! hardcoded example during development
-        detail['target'] = 'julia.sif'
-        #! detail['source'] = 'library://sylabs/examples/julia:latest'
-        detail['source'] = 'docker://julia'
-        detail['bin_name'] = 'julia'
-        modulefile_name = 'latest'
-        """
-        modulefiles:
-            1. base modulefile for latest links to a version number
-            2. version number linked to generic
-            3. generic modulefile infers its name and does the right singularity pulll
-        questions
-            how does the generic modulefile know it's name?
-            how does it know where to do the pull from? from cc.yaml? from an internal toc?
-            how does it check the cache location?
-        note that we need lua functions that answer all of these questions
-        pseudocode for the modulefile:
-            on load, make a cache directory if absent and run singularity pull
-            then add a shell function
-            to handle versions, inject the version into the download image file name
-            then use symbolic links for the version number and the latest
-            see "whitelist_basic" template above
-        """
-        is_tcl,text = False,whitelist_basic
-        fn = os.path.join(dn,'%s%s'%(modulefile_name,'.lua' if not is_tcl else ''))
-        with open(fn,'w') as fp:
-            fp.write(text%detail)
+
+        # prepare the source for the pull command
+        if source=='docker':
+            #! +++ assume docker repo is the same as the module name
+            repo_name = name
+            #! note our Handler trick that uses the kwargs
+            #!   this may seem counterintuitive
+            versions = VersionCheck(name=docker_repo_name,
+                docker_version=version).solve
+            if not versions:
+                #! better error message
+                raise Exception(('cannot satisfy dockerhub version: '
+                    '%s:%s')%(docker_repo_name,version))
+        elif source=='shub':
+            # note that this is repetitive with the docker method above
+            #   but remains distinct in case there are special handling later
+            #! +++ assume docker repo is the same as the module name
+            shub_repo_name = name
+            #! note our Handler trick that uses the kwargs
+            #!   this may seem counterintuitive
+            shub_version = VersionCheck(docker_version=version).solve
+            shub_call = '%s:%s'%(shub_repo_name,shub_version)
+            detail['source'] = 'docker://%s'%shub_call
+        else: raise Exception('UNDER DEVELOPMENT, source: %s'%source)
+
+        # loop over valid versions and create modulefiles
+        # +++ assume that we want all tags that satisfy the version
+        for tag in docker_versions:
+            call = '%s:%s'%(repo_name,tag)
+            detail['source'] = '%s://%s'%(source,call)
+            modulefile_name = tag
+            # +++ assume sif file
+            # +++ formulate the module file name to resemble the lmod name
+            name_image_base = '%s-%s'%(name,tag)
+            detail['target'] = '%s.sif'%name_image_base
+            # add shell functions to the modulefile
+            if shell:
+                
+            self._write_modulefile(dn=dn,fn=modulefile_name,
+                text=text%detail)
 
 class Execute(Handler):
     """
@@ -260,11 +326,7 @@ class Execute(Handler):
         self.whitelist = whitelist
         # build modulefiles for everything on the whitelist
         for key,val in self.whitelist.items():
-            # base case in which there is no subdict and we ask for versionless
-            if val=='versionless':
-                # convey the state/cache for global settings
-                Convey(cache=self.state)(ModuleFileBase)(
-                    name=key,versionless=True).solve
-            #!!! development
-            else: print('warning cannot process: %s,%s'%(key,str(val)))
+            # preprocess the items
+            prepped = PrepModuleRequest(name=key,detail=val).solve
+            request = Convey(cache=self.state)(ModuleRequest)(**prepped).solve
         print('status community-collections is ready!')

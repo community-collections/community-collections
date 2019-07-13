@@ -13,22 +13,28 @@ specs = {
     'miniconda':'./miniconda',
     'conda_activator':'etc/profile.d/conda.sh',
     # hardcoded by the cc wrapper for speed
-    'envname':'community-collections',
-    #! under development. where we dump the images
-    #! 'image_cache_spot':'./cache'
-    }
+    'envname':'community-collections',}
 
 # this default is used by kickstart_yaml
-default_bootstrap = """
-whitelist:
-  julia: versionless
-  tensorflow: 666.6
+default_bootstrap = \
+"""# Community-Collections settings
 images: ~/.cc_images
-""".strip()
+whitelist:
+  R:
+    source: docker
+    version: '>=3.6'
+  julia:
+    source: docker
+    version: '>=1.0.1'
+"""
 
-#! other (?) default parameters
+#! other (?) default parameters. explain this
 default_full = {
     #'checkup':'careful',
     #'singularity_default_cache':'/where/to/cache',
     #! previously Singularity.NEEDS_PATH
     'singularity':{'path':'NEEDS_SINGULARITY_PATH'},}
+
+# default modulefile settings
+default_modulefile_settings = dict(
+    source='docker',)
