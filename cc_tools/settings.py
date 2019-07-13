@@ -37,6 +37,11 @@ whitelist:
   julia:
     source: docker
     version: '>=1.0.1'
+  lolcow:
+    repo: leconte/examples/lolcow
+    source: library
+    #! no version checking on the library yet
+    version: latest
 """
 
 #! other (?) default parameters. explain this

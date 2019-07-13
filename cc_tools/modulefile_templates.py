@@ -3,7 +3,7 @@
 modulefile_basic = """
 local images_dn = "%(image_spot)s"
 -- the source is suffixed with the tag, which is identical to the Lmod version
-local source = "%(source)s:" .. myModuleVersion()
+local source = "%(source)s" .. myModuleVersion()
 local conda_env = "%(conda_env)s"
 local target = myModuleName() .. "-" .. myModuleVersion() .. ".sif"
 

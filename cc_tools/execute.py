@@ -285,7 +285,7 @@ class ModuleRequest(Handler):
             repo_name = name if not repo else repo
             # the source will bne suffixed with the tag in the modulefile
             #   this is necessary when using the symlink method
-            detail['source'] = 'docker://%s'%repo_name
+            detail['source'] = 'docker://%s:'%repo_name
             #! note our Handler trick that uses the kwargs
             #!   this may seem counterintuitive
             versions = VersionCheck(name=repo_name,
@@ -295,21 +295,21 @@ class ModuleRequest(Handler):
                 raise Exception(('cannot satisfy dockerhub version: '
                     '%s:%s')%(repo_name,version))
         elif source=='shub':
-            # note that this is repetitive with the docker method above
-            #   but remains distinct in case there are special handling later
-            #! +++ assume docker repo is the same as the module name
+            #! custom repo_name?
             shub_repo_name = name
-            #! note our Handler trick that uses the kwargs
-            #!   this may seem counterintuitive
             shub_version = VersionCheck(docker_version=version).solve
             shub_call = '%s:%s'%(shub_repo_name,shub_version)
-            # +++ only one source per module. you cannot mix and match
             detail['source'] = 'docker://%s'%shub_call
+        elif source=='library':
+            repo_name = name if not repo else repo
+            detail['source'] = 'library://%s:'%repo_name
+            #! no version checking on the library yet
+            versions = ('latest',)
         else: raise Exception('UNDER DEVELOPMENT, source: %s'%source)
 
         # prepare shell functions
         shell_calls = ''
-        if calls and name not in calls:
+        if (calls and name not in calls) or not calls:
             # +++ by default map the module name to singularity run
             # +++ allow the shell parameter to use a different alias
             shell_calls += shell_connection_run%dict(
@@ -344,8 +344,10 @@ class ModuleRequest(Handler):
                 Lmod automatically serves the latest available version. this
                 only requires periodic ./cc refresh commands to stay current
             """
-            os.symlink(os.path.join('.base.lua',),
-                os.path.join(dn,modulefile_name+'.lua'))
+            target_link = os.path.join(dn,modulefile_name+'.lua')
+            if not os.path.isfile(target_link):
+                os.symlink(os.path.join('.base.lua',),
+                    target_link)
 
 class Execute(Handler):
     """
