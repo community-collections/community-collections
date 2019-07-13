@@ -1,3 +1,4 @@
+-- !! bug: ml/env && ml/env unloads the module
 local conda_prefix = os.getenv("CONDA_PREFIX")
 if (conda_prefix == nil or conda_prefix == "") then
   -- only load cc/conda if it is not loaded 
@@ -7,7 +8,6 @@ if (conda_prefix == nil or conda_prefix == "") then
     setenv("_CC_CONDA_INHERIT",1)
     load("cc/conda") 
   end
-  -- end
   cmd = "conda activate community-collections"
   execute{cmd=cmd, modeA = {"load"}}
 else
