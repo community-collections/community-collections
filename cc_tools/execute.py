@@ -283,6 +283,9 @@ class ModuleRequest(Handler):
         if source=='docker':
             #! +++ assume docker repo is the same as the module name
             repo_name = name if not repo else repo
+            # the source will bne suffixed with the tag in the modulefile
+            #   this is necessary when using the symlink method
+            detail['source'] = 'docker://%s'%repo_name
             #! note our Handler trick that uses the kwargs
             #!   this may seem counterintuitive
             versions = VersionCheck(name=repo_name,
@@ -300,36 +303,49 @@ class ModuleRequest(Handler):
             #!   this may seem counterintuitive
             shub_version = VersionCheck(docker_version=version).solve
             shub_call = '%s:%s'%(shub_repo_name,shub_version)
+            # +++ only one source per module. you cannot mix and match
             detail['source'] = 'docker://%s'%shub_call
         else: raise Exception('UNDER DEVELOPMENT, source: %s'%source)
+
+        # prepare shell functions
+        shell_calls = ''
+        if calls and name not in calls:
+            # +++ by default map the module name to singularity run
+            # +++ allow the shell parameter to use a different alias
+            shell_calls += shell_connection_run%dict(
+                alias=name if shell==None else shell)
+        # +++ extra aliases
+        elif calls:
+            # a list of calls implies identical aliases otherwise use dict
+            if isinstance(calls,list):
+                calls = dict([(i,i) for i in calls])
+            for k,v in calls.items():
+                shell_calls += shell_connection_exec%dict(alias=k,target=v)
+        detail['shell_connections'] = shell_calls
+
+        # write a single hidden base modulefile
+        if versions:
+            self._write_modulefile(dn=dn,fn='.base',
+                text=text%detail)
 
         # loop over valid versions and create modulefiles
         # +++ assume that we want all tags that satisfy the version
         for tag in versions:
-            call = '%s:%s'%(repo_name,tag)
-            detail['source'] = '%s://%s'%(source,call)
             modulefile_name = tag
             # +++ assume sif file
             # +++ formulate the module file name to resemble the lmod name
             name_image_base = '%s-%s'%(name,tag)
-            detail['target'] = '%s.sif'%name_image_base
-            # prepare shell functions
-            shell_calls = ''
-            if calls and name not in calls:
-                # +++ by default map the module name to singularity run
-                # +++ allow the shell parameter to use a different alias
-                shell_calls += shell_connection_run%dict(
-                    alias=name if shell==None else shell)
-            # +++ extra aliases
-            elif calls:
-                # a list of calls implies identical aliases otherwise use dict
-                if isinstance(calls,list):
-                    calls = dict([(i,i) for i in calls])
-                for k,v in calls.items():
-                    shell_calls += shell_connection_exec%dict(alias=k,target=v)
-            detail['shell_connections'] = shell_calls
-            self._write_modulefile(dn=dn,fn=modulefile_name,
-                text=text%detail)
+            #! the name is coded in the modulefile after implementing symlinks
+            #!   detail['target'] = '%s.sif'%name_image_base
+            """ the secret sauce: link to the base lua file which auto-detects
+                its name to point to the right image. the act of symlinking
+                all of the versions according to cc.yaml and the use of ">="
+                means that we get the latest version, symlink it, and then
+                Lmod automatically serves the latest available version. this
+                only requires periodic ./cc refresh commands to stay current
+            """
+            os.symlink(os.path.join('.base.lua',),
+                os.path.join(dn,modulefile_name+'.lua'))
 
 class Execute(Handler):
     """

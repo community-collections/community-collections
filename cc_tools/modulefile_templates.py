@@ -2,9 +2,10 @@
 
 modulefile_basic = """
 local images_dn = "%(image_spot)s"
-local target = "%(target)s"
-local source = "%(source)s"
+-- the source is suffixed with the tag, which is identical to the Lmod version
+local source = "%(source)s:" .. myModuleVersion()
 local conda_env = "%(conda_env)s"
+local target = myModuleName() .. "-" .. myModuleVersion() .. ".sif"
 
 load('cc/singularity')
 
