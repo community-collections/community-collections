@@ -38,10 +38,18 @@ whitelist:
     source: docker
     version: '>=1.0.1'
   lolcow:
+    #! weird ls-related problems with library:// need fixed
     repo: leconte/examples/lolcow
     source: library
     #! no version checking on the library yet
     version: latest
+  tensorflow:
+    calls:
+    - python
+    repo: tensorflow/tensorflow
+    shell: false
+    source: docker
+    version: 1.12.3-gpu-py3
 """
 
 #! other (?) default parameters. explain this

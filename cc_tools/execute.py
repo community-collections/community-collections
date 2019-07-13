@@ -25,8 +25,6 @@ from .settings import cc_user,default_modulefile_settings,specs
 from .stdtools import bash
 from .modulefile_templates import modulefile_basic
 from .modulefile_templates import shell_connection_run,shell_connection_exec
-import urllib,json
-import urllib.request
 
 def register_error(self,name,error):
     """
@@ -192,11 +190,11 @@ class VersionCheck(Handler):
             (op=='>' and not self._version_number_compare(version_this,version)>0) or
             (op=='>=' and not self._version_number_compare(version_this,version)>=0))
     def _version_syntax(self,req):
-        regex_version = '^(=|>=|>)(.*?)$'
-        op,version = None,0
+        regex_version = r'^(=|==|>=|>)?([\d+\.]+)(.*?)$'
+        op,version,suffix = None,0,None
         match = re.match(regex_version,req)
-        if match: op,version = re.match(regex_version,req).groups()
-        return op,version
+        if match: op,version,suffix = re.match(regex_version,req).groups()
+        return op,version,suffix
     def _extract_number(self,result):
         items = []
         for i in result:
@@ -206,23 +204,36 @@ class VersionCheck(Handler):
             items.append(reduced)
         return items
     def _check_version(self,splits,target,prefer_no_suffix=True):
-        op,version = self._version_syntax(target)
+        op,version,suffix = self._version_syntax(target) 
         if op==None: op = "=="
         candidates = []
         for split in splits:
             # the number extracter tries to ignore suffixes i.e. 1.2.3-wheezy
             this = split[0]
-            if (re.match(r'^[\d\.]+$',this) and
+            # if the user supplied a suffix and we are seeking equality
+            if suffix and op=="==" and version+suffix==''.join(split):
+                candidates.append(''.join(split))
+            # a normal version number without a suffix is checked against 
+            #   all other version numbers and prefer_no_suffix determines if
+            #   we allow found suffies to come along
+            elif not suffix and (re.match(r'^[\d\.]+$',this) and
                 self._version_check(this,op,version)):
                 # insist on clean version numbers
                 if not prefer_no_suffix or split[1]=='':
                     candidates.append(''.join(split))
                 else: pass
+        #print(candidates)
+        #import ipdb;ipdb.set_trace()
         return candidates
     def docker(self,name,docker_version,prefer_no_suffix=True):
         """Check the dockerhub registry."""
+        # import these inside the function because they come with anaconda
+        import urllib,json
+        import urllib.request
         url = "https://registry.hub.docker.com/v1/repositories/%s/tags"%name
-        response = urllib.request.urlopen(url)
+        try: response = urllib.request.urlopen(url)
+        except:
+            raise Exception('failed to curl from: %s'%url)
         result = json.load(response)
         # we split the version to ignore suffixes
         splits = self._extract_number(result)
@@ -309,7 +320,7 @@ class ModuleRequest(Handler):
 
         # prepare shell functions
         shell_calls = ''
-        if (calls and name not in calls) or not calls:
+        if ((calls and name not in calls) or not calls) and shell!=False:
             # +++ by default map the module name to singularity run
             # +++ allow the shell parameter to use a different alias
             shell_calls += shell_connection_run%dict(

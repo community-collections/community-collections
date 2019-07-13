@@ -17,7 +17,10 @@ Use the following commands to test the code.
 git clone http://github.com/kmanalo/community-collections
 cd community-collections
 ./cc nuke # only if you are developing and want to delete everything
-rm -rf ~/.singularity ~/.cc_images # clear your own cache if developing
+# erase some stray modulfiles because we do not clean them up
+rm -rf ./modulefiles/julia ./modulefiles/lolcow ./modulefiles/R ./modulefiles/tensorflow
+# clear your own cache if developing
+rm -rf ~/.singularity ~/.cc_images 
 ./cc refresh
 vi cc.yaml # remove error notes to build Lmod and Singularity locally
 ./cc update_bashrc # generates profile_cc.sh and adds it to ~/.bashrc (only contains references to Lmod)
@@ -26,6 +29,9 @@ ml av # cc/conda supplies miniconda; cc/env supplies the conda env; and singular
 ./cc admin_check
 sudo ./cc admin_check --force # sudo is required for sif files (no switch yet to enable sandboxes if you have userns)
 ml julia # triggers the example singularity pull from docker
+ml tensorflow # pulls a specific version with a suffix (see the default cc.yaml)
+ml R # gets a copy of R from r-base
+# note that the lolcow is broken because it accidentally dumps some text to stdout and blank files
 ```
 
 Version-checking and versionless modules are still under development.
@@ -48,3 +54,5 @@ RUN yum install -y bzip2
 ```
 
 Without `libtcl` or `squashfs-tools`, the code uses the `conda` environment to supply these. 
+
+Note that very recent testing shows that cryptsetup is now required. This may be a change to Golang or something else. This is somewhat frustrating because the dependencies were relatively minimal (see Dockerfile above).

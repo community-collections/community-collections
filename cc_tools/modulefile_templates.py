@@ -30,7 +30,7 @@ function check_image_sizes()
         end
     end
     local size_str = string.format("%%.0fMB",total_size/1000000)
-    io.stderr:write(size_str .. " \\n")
+    io.stderr:write(size_str .. "\\n")
 end
 
 if mode()=="load" then
