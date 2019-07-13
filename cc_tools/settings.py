@@ -17,10 +17,21 @@ specs = {
 
 # this default is used by kickstart_yaml
 default_bootstrap = \
-"""# Community-Collections settings
+"""### Community-Collections settings
+
+# default place to store images
 images: ~/.cc_images
+module_settings:
+  # choose the default source
+  # if you omit module_settings, docker is the default
+  source: docker
+# standard set of modules
 whitelist:
   R:
+    calls:
+    - R
+    - Rscript
+    repo: r-base
     source: docker
     version: '>=3.6'
   julia:

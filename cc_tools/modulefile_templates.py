@@ -4,6 +4,7 @@ modulefile_basic = """
 local images_dn = "%(image_spot)s"
 local target = "%(target)s"
 local source = "%(source)s"
+local conda_env = "%(conda_env)s"
 
 load('cc/singularity')
 
@@ -14,27 +15,57 @@ end
 local images_dn_abs = resolve_tilde(images_dn)
 local target_fn = pathJoin(images_dn_abs,target)
 
+function check_image_sizes() 
+    io.stderr:write("[CC] checking image sizes " .. images_dn_abs .. "\\n")
+    total_size = 0
+    for path in lfs.dir(images_dn_abs) do
+        -- better way to select only files?
+        if path ~= "." and path ~= ".." then
+            local size = tonumber(lfs.attributes(
+                pathJoin(images_dn_abs,path), "size"))
+            total_size = total_size + size
+            local size_str = string.format("%%.0fMB",size/1000000)
+            io.stderr:write(size_str .. " " .. path .. "\\n")
+        end
+    end
+    local size_str = string.format("%%.0fMB",total_size/1000000)
+    io.stderr:write(size_str .. " \\n")
+end
+
 if mode()=="load" then
+
+    -- make a cache directory
     if lfs.attributes(images_dn_abs,'mode')==nil then
-        io.stderr:write("[CC] making a cache directory: " .. images_dn_abs .. "\\n")
+        io.stderr:write(
+            "[CC] making a cache directory: " .. images_dn_abs .. "\\n")
         lfs.mkdir(images_dn_abs)
     end
+    -- download the image
     if lfs.attributes(target_fn,'mode')==nil then
-        -- if squashfs comes from cc/env we prepend the path here
-        -- this is a hack in place of a ml cc/env which would be much more elegant but could not be unloaded
-        -- utterly failed to load cc/env and unload it. something appears to be asynchronous (beyond just the lmod execute)
-        append_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),"miniconda/envs/community-collections/bin"))
+        append_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),conda_env,"bin"))
         local cmd = 'singularity pull ' .. target_fn .. ' ' .. source
-        -- execute {cmd=cmd,modeA={"load"}}
-        io.stderr:write("[CC] community collections downloads the containers on-demand\\n")
-        io.stderr:write("[CC] downloading the image: " .. images_dn_abs .. "\\n")
+        io.stderr:write(
+            "[CC] community collections downloads the containers on-demand\\n")
+        io.stderr:write(
+            "[CC] downloading the image: " .. images_dn_abs .. "\\n")
         os.execute(cmd)
-        -- cleanup the squashfs hack (note: it would be nice to only remove this 
-        --   if it was not in there before to avoid conflicts with cc/env)
-        remove_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),"miniconda/envs/community-collections/bin"))
+        remove_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),conda_env,"bin"))
         io.stderr:write("[CC] downloaded the image: " .. target_fn .. "\\n")
+        check_image_sizes()
+        io.stderr:write("[CC] please be mindful of your quota\\n")
+        io.stderr:write("[CC] the module is ready: " .. myModuleName() .. "\\n")
     end
-    -- !! add shell functions here for specific commands when they come from a recipe?
-    -- set_shell_function('%(bin_name)s',"singularity exec " .. target_fn .. ' %(bin_name)s "$@"',"singularity exec " .. target_fn .. '%(bin_name)s "$*"')
+    -- interface to the container
+%(shell_connections)s
 end
+"""
+
+shell_connection_exec = """    set_shell_function('%(alias)s',
+        "singularity exec " .. target_fn .. ' %(target)s "$@"',
+        "singularity exec " .. target_fn .. '%(target)s "$*"')
+"""
+
+shell_connection_run = """    set_shell_function('%(alias)s',
+        "singularity run " .. target_fn,
+        "singularity run " .. target_fn)
 """

@@ -21,9 +21,10 @@ from .installers import SingularityManager
 from .installers import LmodManager
 from .installers import SpackManager
 from .misc import write_user_yaml
-from .settings import cc_user,default_modulefile_settings
+from .settings import cc_user,default_modulefile_settings,specs
 from .stdtools import bash
 from .modulefile_templates import modulefile_basic
+from .modulefile_templates import shell_connection_run,shell_connection_exec
 import urllib,json
 import urllib.request
 
@@ -262,7 +263,7 @@ class ModuleRequest(Handler):
         fn = os.path.join(dn,fn)
         with open(fn,'w') as fp: fp.write(text)
     def singularity_pull(self,name,source=None,
-        version='latest',shell=None):
+        version='latest',shell=None,calls=None,repo=None):
         """Develop a singularity pull function."""
         # always use lua
         is_tcl,text = False,modulefile_basic
@@ -271,20 +272,25 @@ class ModuleRequest(Handler):
         if not source: source = self.cache['module_settings']['source']
         dn = os.path.join(self.cache['case']['modulefiles'],name)
         if not os.path.isdir(dn): os.mkdir(dn)
-        detail = dict(image_spot=self.image_spot)
+        # the modulefile uses the relative path to the conda env for mksquashfs
+        conda_env_relpath = os.path.join(os.path.relpath(specs['miniconda']),
+            'envs',specs['envname'])
+        detail = dict(
+            image_spot=self.image_spot,
+            conda_env=conda_env_relpath)
 
         # prepare the source for the pull command
         if source=='docker':
             #! +++ assume docker repo is the same as the module name
-            repo_name = name
+            repo_name = name if not repo else repo
             #! note our Handler trick that uses the kwargs
             #!   this may seem counterintuitive
-            versions = VersionCheck(name=docker_repo_name,
+            versions = VersionCheck(name=repo_name,
                 docker_version=version).solve
             if not versions:
                 #! better error message
                 raise Exception(('cannot satisfy dockerhub version: '
-                    '%s:%s')%(docker_repo_name,version))
+                    '%s:%s')%(repo_name,version))
         elif source=='shub':
             # note that this is repetitive with the docker method above
             #   but remains distinct in case there are special handling later
@@ -299,7 +305,7 @@ class ModuleRequest(Handler):
 
         # loop over valid versions and create modulefiles
         # +++ assume that we want all tags that satisfy the version
-        for tag in docker_versions:
+        for tag in versions:
             call = '%s:%s'%(repo_name,tag)
             detail['source'] = '%s://%s'%(source,call)
             modulefile_name = tag
@@ -307,9 +313,21 @@ class ModuleRequest(Handler):
             # +++ formulate the module file name to resemble the lmod name
             name_image_base = '%s-%s'%(name,tag)
             detail['target'] = '%s.sif'%name_image_base
-            # add shell functions to the modulefile
-            if shell:
-                
+            # prepare shell functions
+            shell_calls = ''
+            if calls and name not in calls:
+                # +++ by default map the module name to singularity run
+                # +++ allow the shell parameter to use a different alias
+                shell_calls += shell_connection_run%dict(
+                    alias=name if shell==None else shell)
+            # +++ extra aliases
+            elif calls:
+                # a list of calls implies identical aliases otherwise use dict
+                if isinstance(calls,list):
+                    calls = dict([(i,i) for i in calls])
+                for k,v in calls.items():
+                    shell_calls += shell_connection_exec%dict(alias=k,target=v)
+            detail['shell_connections'] = shell_calls
             self._write_modulefile(dn=dn,fn=modulefile_name,
                 text=text%detail)
 
