@@ -25,7 +25,7 @@ function check_image_sizes()
             local size = tonumber(lfs.attributes(
                 pathJoin(images_dn_abs,path), "size"))
             total_size = total_size + size
-            local size_str = string.format("%%.0fMB",size/1000000)
+            local size_str = string.format("%%6.0fMB",size/1000000)
             io.stderr:write(size_str .. " " .. path .. "\\n")
         end
     end
@@ -43,18 +43,16 @@ if mode()=="load" then
     end
     -- download the image
     if lfs.attributes(target_fn,'mode')==nil then
-        append_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),conda_env,"bin"))
-        local cmd = 'singularity pull ' .. target_fn .. ' ' .. source
-        io.stderr:write(
-            "[CC] community collections downloads the containers on-demand\\n")
-        io.stderr:write(
-            "[CC] downloading the image: " .. images_dn_abs .. "\\n")
-        os.execute(cmd)
-        remove_path("PATH",pathJoin(os.getenv("_COMCOL_ROOT"),conda_env,"bin"))
-        io.stderr:write("[CC] downloaded the image: " .. target_fn .. "\\n")
-        check_image_sizes()
-        io.stderr:write("[CC] please be mindful of your quota\\n")
-        io.stderr:write("[CC] the module is ready: " .. myModuleName() .. "\\n")
+        local conda_bin = pathJoin(os.getenv("_COMCOL_ROOT"),conda_env,"bin")
+        local prefix = "PATH=$PATH:" .. conda_bin .. " "
+        -- after download we report on the size
+        local suffix = (" && " .. pathJoin(conda_bin,"lua") .. " " .. 
+            pathJoin(os.getenv("_COMCOL_ROOT"),"cc_tools","post_download.lua") 
+            .. " " .. images_dn .. " " .. target_fn .. " " .. myModuleName())
+        local cmd = (prefix .. 
+            "singularity pull " .. target_fn .. " " .. 
+            source .. suffix)
+        execute{cmd=cmd,modeA={"load"}}
     end
     -- interface to the container
 %(shell_connections)s
