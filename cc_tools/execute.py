@@ -211,8 +211,13 @@ class VersionCheck(Handler):
             # the number extracter tries to ignore suffixes i.e. 1.2.3-wheezy
             this = split[0]
             # if the user supplied a suffix and we are seeking equality
+            # has a suffix and there is an exact match
             if suffix and op=="==" and version+suffix==''.join(split):
                 candidates.append(''.join(split))
+            # no suffix and an exact match (ignores _version_syntax result)
+            elif (not suffix and (len(split)==1 or not split[1]) 
+                and this==target):
+                candidates.append(split[0])
             # a normal version number without a suffix is checked against 
             #   all other version numbers and prefer_no_suffix determines if
             #   we allow found suffies to come along
@@ -222,8 +227,6 @@ class VersionCheck(Handler):
                 if not prefer_no_suffix or split[1]=='':
                     candidates.append(''.join(split))
                 else: pass
-        #print(candidates)
-        #import ipdb;ipdb.set_trace()
         return candidates
     def docker(self,name,docker_version,prefer_no_suffix=True):
         """Check the dockerhub registry."""
@@ -235,6 +238,8 @@ class VersionCheck(Handler):
         except:
             raise Exception('failed to curl from: %s'%url)
         result = json.load(response)
+        if not result:
+            print('warning url %s yielded nothing'%url)
         # we split the version to ignore suffixes
         splits = self._extract_number(result)
         # compare the requested version against the splits
@@ -304,7 +309,8 @@ class ModuleRequest(Handler):
             if not versions:
                 #! better error message
                 raise Exception(('cannot satisfy dockerhub version: '
-                    '%s:%s')%(repo_name,version))
+                    '%s:%s, versions are: %s')%(
+                    repo_name,version,str(versions)))
         elif source=='shub':
             #! custom repo_name?
             shub_repo_name = name
@@ -315,7 +321,7 @@ class ModuleRequest(Handler):
             repo_name = name if not repo else repo
             detail['source'] = 'library://%s:'%repo_name
             #! no version checking on the library yet
-            versions = ('latest',)
+            versions = (version,)
         else: raise Exception('UNDER DEVELOPMENT, source: %s'%source)
 
         # prepare shell functions
