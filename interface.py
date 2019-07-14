@@ -177,6 +177,7 @@ class Interface(Parser):
             'modules','stage','lmod','Miniconda*.sh','tmp',
             'spack','singularity','profile_cc.sh',
             ]] for i in j]
+        fns += [i for i in glob.glob('modulefiles/*') if i!='modulefiles/cc']
         self.cache = {}
         print('status removing: %s'%', '.join(fns))
         if confirm('okay to remove the files above?',):

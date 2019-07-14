@@ -16,49 +16,16 @@ specs = {
     'envname':'community-collections',}
 
 # this default is used by kickstart_yaml
-default_bootstrap = \
-"""### Community-Collections settings
+import os
+with open(os.path.join(
+    os.path.dirname(__file__),'defaults_cc.yaml')) as fp:
+    default_bootstrap = fp.read()
 
-# default place to store images
-images: ~/.cc_images
-module_settings:
-  # choose the default source
-  # if you omit module_settings, docker is the default
-  source: docker
-# standard set of modules
-whitelist:
-  R:
-    calls:
-    - R
-    - Rscript
-    repo: r-base
-    source: docker
-    version: '>=3.6'
-  julia:
-    source: docker
-    version: '>=1.0.1'
-  lolcow:
-    #! weird ls-related problems with library:// need fixed
-    repo: leconte/examples/lolcow
-    source: library
-    #! no version checking on the library yet
-    version: latest
-  tensorflow:
-    calls:
-    - python
-    repo: tensorflow/tensorflow
-    shell: false
-    source: docker
-    version: 1.12.3-gpu-py3
-"""
-
-#! other (?) default parameters. explain this
-default_full = {
-    #'checkup':'careful',
-    #'singularity_default_cache':'/where/to/cache',
-    #! previously Singularity.NEEDS_PATH
-    'singularity':{'path':'NEEDS_SINGULARITY_PATH'},}
+# default settings used by settings_resolver 
+#   and also deprecated by the Manager classes
+default_full = {}
 
 # default modulefile settings
+# these can be overridden by "module_settings" in cc.yaml
 default_modulefile_settings = dict(
     source='docker',)

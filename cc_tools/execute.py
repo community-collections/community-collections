@@ -85,7 +85,7 @@ class UseCase(Handler):
         # default singularity settings
         if not singularity:
             #! note that this might be better handled by the settings_resolver?
-            singularity = dict(path=SingularityManager.CHECK_PATH)
+            singularity = dict(path=SingularityManager.CHECK_ROOT)
 
         # default lmod settings
         if not lmod:
