@@ -23,7 +23,8 @@ rm -rf ./modulefiles/julia ./modulefiles/lolcow ./modulefiles/R ./modulefiles/te
 rm -rf ~/.singularity ~/.cc_images 
 ./cc refresh
 vi cc.yaml # remove error notes to build Lmod and Singularity locally
-./cc update_bashrc # generates profile_cc.sh and adds it to ~/.bashrc (only contains references to Lmod)
+./cc profile  # generates profile_cc.sh and adds it to ~/.bashrc (only contains references to Lmod)
+# if you wish to skip bashrc changes and only make the profile_cc.sh, use ./cc profile --no-bashrc
 source profile_cc.sh # or get a new login shell if you said "y" to adding to your bashrc
 ml av # cc/conda supplies miniconda; cc/env supplies the conda env; and singularity is available as module
 ./cc admin_check
