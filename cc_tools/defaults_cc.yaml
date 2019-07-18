@@ -1,0 +1,35 @@
+### Community-Collections settings
+
+# default place to store images
+images: ~/.cc_images
+
+# global settings
+module_settings:
+  # choose the default source (otherwise docker)
+  source: docker
+
+# standard set of modules
+whitelist:
+  R:
+    calls:
+    - R
+    - Rscript
+    repo: r-base
+    source: docker
+    version: '>=3.6'
+  julia:
+    source: docker
+    version: '>=1.0.1'
+  lolcow:
+    #! weird ls-related problems with library:// need fixed
+    repo: leconte/examples/lolcow
+    source: library
+    #! no version checking on the library yet
+    version: latest
+  tensorflow:
+    calls:
+    - python
+    repo: tensorflow/tensorflow
+    shell: false
+    source: docker
+    version: 1.12.3-gpu-py3
