@@ -56,7 +56,10 @@ class UseCase(Handler):
         Add a list of bashrc changes to the user settings.
         The user can apply the changes with ./cc update_bashrc
         """
-        mods = self.cache.pop('bashrc_mods',[])
+        mods = self.cache.pop('bashrc_mods',{})
+        # mods are categorical: only one change per category is allowed
+        #   discard the category names and keep the values
+        mods = list([i for j in mods.values() for i in j])
         if mods:
             # add modifications to existing ones in the settings
             mods_prev = self.cache['settings'].get('bashrc',{}).get('mods',[])
@@ -154,7 +157,8 @@ class UseCase(Handler):
                 os.path.join(os.path.realpath(singularity_inst.path),'bin')]
         # infer the version from singularity
         #! should this be done with another version checker?
-        result = bash('./singularity/bin/singularity version',scroll=False)
+        result = bash(os.path.join(
+			singularity_inst.path,singularity_inst.check_bin_version),scroll=False)
         try: version = re.match(r'^(\d+\.\d+(?:\.\d+))',result['stdout']).group(1)
         except: raise Exception('failed to infer Singularity version')
         singularity_module_dn = 'modulefiles/cc/singularity'

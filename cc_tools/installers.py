@@ -224,7 +224,7 @@ class LmodManager(Handler):
     STATE_CONFIRM = 'needs_confirm'
     lua_reqs = ('posix','lfs')
     # account for the removal of the lmod root path here
-    lmod_bin_check = './lmod/lmod/libexec/lmod help'
+    lmod_bin_check = './lmod/libexec/lmod help'
     lmod_returncode = 0
     # location for modulefiles to add to the module path
     modulefiles = './modulefiles'
@@ -309,7 +309,7 @@ class LmodManager(Handler):
         rel_path = os.path.join('.',os.path.relpath(self.root,os.getcwd()))
         if '..' not in rel_path: self.root = rel_path
         # clear errors from previous runs
-        self.cache['errors'].pop('lmod',None)
+        self.cache.get('errors',{}).pop('lmod',None)
         self.cache['settings']['lmod'] = {'root':self.root}
 
     def _detect_lmod(self):
@@ -325,6 +325,20 @@ class LmodManager(Handler):
                 # the true path to lmod
                 return os.path.sep.join(split_path[:-3])
         return False
+
+    def _lmod_profile_changes(self):
+        # stage some bashrc changes only if we just installed
+        if 'bashrc_mods' not in self.cache: 
+            self.cache['bashrc_mods'] = {}
+        init_fn = os.path.abspath(os.path.join(self.root,'lmod/init/bash'))
+        if not os.path.isfile(init_fn):
+            raise Exception('cannot find %s'%init_fn)
+        # append to the modulepath
+        mods = ['export MODULEPATH=${MODULEPATH:+$MODULEPATH:}%s'%
+            os.path.abspath(self.modulefiles),'source %s'%init_fn]
+        # Lmod also needs to know the cc root for some of our modulefiles
+        mods += ['export _COMCOL_ROOT="%s"'%os.path.realpath(os.getcwd())]
+        self.cache['bashrc_mods']['lmod'] = mods
 
     ### interpret lmod settings (each method below reads possible inputs)
 
@@ -371,15 +385,7 @@ class LmodManager(Handler):
                 raise Exception('Lmod failed check after installation.')
             self.root = build
             self._report_ready()
-            # stage some bashrc changes only if we just installed
-            if 'bashrc_mods' not in self.cache: 
-                self.cache['bashrc_mods'] = []
-            init_fn = os.path.abspath(os.path.join(self.root,'lmod/init/bash'))
-            mods = ['export MODULEPATH=%s'%
-                os.path.abspath(self.modulefiles),'source %s'%init_fn]
-            # Lmod also needs to know the cc root for some of our modulefiles
-            mods += ['export _COMCOL_ROOT="%s"'%os.path.realpath(os.getcwd())]
-            self.cache['bashrc_mods'].extend(mods)
+            self._lmod_profile_changes()
 
         # exceptions are handled later by UseCase
         except Exception as e: 
@@ -407,6 +413,7 @@ class LmodManager(Handler):
                 checked = self._check_lmod(path=self.root)
                 # after detecting make sure that it works
                 if checked:
+                    self._lmod_profile_changes()
                     self._report_ready()
                 else: 
                     self._register_error(name='lmod',
@@ -462,12 +469,22 @@ class SingularityManager(Handler):
     STATE_ABSENT = 'absent'
     STATE_CONFIRM = 'needs_confirm'
     check_bin = 'bin/singularity help'
+    check_bin_version = 'bin/singularity --version'
     check_returncode = 0 
     default_build_conf = {'build':'./singularity'}
 
     def _detect_singularity(self):
-        #! look around to find singularity if it is not in the path?
-        return False
+        try: which_singularity = bash('which singularity',scroll=False)
+        # error code on which causes an exception
+        except: return False
+        fn = which_singularity['stdout'].strip()
+        if os.path.isfile(fn):
+            root = os.path.sep.join(fn.split(os.path.sep)[:-2])
+            tail = os.path.sep.join(fn.split(os.path.sep)[-2:])
+            # if non-standard binary then reject
+            if tail!='bin/singularity': return False
+            else: return root
+        else: return False
 
     def _check_singularity_prelim(self,path):
         if os.path.isdir(path): return self.STATE_CONFIRM
@@ -481,7 +498,7 @@ class SingularityManager(Handler):
 
     def _report_ready(self,):
         print('status Singularity is reporting ready')
-        self.cache['errors'].pop('singularity',None)
+        self.cache.get('errors',{}).pop('singularity',None)
         self.cache['settings']['singularity'] = {
             'path':self.path}
 
@@ -573,13 +590,15 @@ class SingularityManager(Handler):
             self.path = build
             self._report_ready()
             # stage some bashrc changes only if we just installed
-            if 'bashrc_mods' not in self.cache: 
-                self.cache['bashrc_mods'] = []
+            #! deprecated. see below
+            if False and 'bashrc_mods' not in self.cache: 
+                self.cache['bashrc_mods'] = {}
             build_bin_dn = os.path.join(os.path.abspath(
                 os.path.expanduser(build)),'bin')
             #! adding singularity to profile_cc.sh is deprecated because
             #!   the modulefiles themselves can load the module (cc/singularity)
             if False:
+                #! if you return this to service, update bashrc_mods with category
                 mods = ['export PATH=%s:$PATH'%build_bin_dn]
                 self.cache['bashrc_mods'].extend(mods)
 

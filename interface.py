@@ -12,6 +12,7 @@ Currently offering this to the user via: `alias cc="python $(pwd)/cc"`.
 import sys
 import os
 import glob
+import re
 
 import cc_tools
 from cc_tools.statetools import Parser
@@ -132,7 +133,7 @@ class Interface(Parser):
         # debug is also CLI function so no args
         #! self.debug()
 
-    def update_bashrc(self,explicit=False,profile='profile_cc.sh'):
+    def profile(self,explicit=False,bashrc=True,profile='profile_cc.sh'):
         """
         Add changes to a bashrc file.
         Note that the explicit flag will direct changes to a profile.
@@ -145,17 +146,30 @@ class Interface(Parser):
                 mods=list(mods))
             mods = ['source %s'%profile_detail['fn']]
         else: profile_detail = None
-        if mods:
+        # always write a profile script
+        if profile_detail and profile_detail['mods']: 
+        #! ideally we would compare the existing profile to
+            #!   see if we need to add to it but for now we are strict
+            if os.path.isfile(profile_detail['fn']):
+                raise Exception('refusing to overwrite %s'%profile_detail['fn'])
+            with open(profile_detail['fn'],'w') as fp:
+                fp.write('\n'.join(profile_detail['mods']))
+            print('status to use CC, run: source %s'%
+                os.path.abspath(profile_detail['fn']))
+        # by default the bashrc flag signals an update to the bashrc
+        # otherwise the above code only writes the profile script
+        if mods and bashrc:
             print('status proposed modifications to ~/.bashrc:')
             print('\n'.join(mods))
             if confirm('okay to add the above to your ~/.bashrc?',):
-                # if we divert changes to a profile then write it here
-                if profile_detail['mods']: 
-                    with open(profile_detail['fn'],'w') as fp:
-                        fp.write('\n'.join(profile_detail['mods']))
                 bashrc_fn = os.path.expanduser('~/.bashrc')
                 if os.path.isfile(bashrc_fn):
                     with open(bashrc_fn) as fp: text = fp.read()
+                    previous = [m for m in mods if 
+                        re.search(m,text)]
+                    if any(previous):
+                        raise Exception('refusing to update because bashrc contains '
+                            ' modifications from a previous run: %s'%str(previous))
                     text += '\n# community-collections\n'+'\n'.join(mods)+'\n'
                     with open(bashrc_fn,'w') as fp: 
                         fp.write(text)
