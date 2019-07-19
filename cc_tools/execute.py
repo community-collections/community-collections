@@ -159,7 +159,7 @@ class UseCase(Handler):
         #! should this be done with another version checker?
         result = bash(os.path.join(
 			singularity_inst.path,singularity_inst.check_bin_version),scroll=False)
-        try: version = re.match(r'^(\d+\.\d+(?:\.\d+))',result['stdout']).group(1)
+        try: version = re.match(r'(?:^|.+\s)(\d+\.\d+(?:\.\d+))',result['stdout']).group(1)
         except: raise Exception('failed to infer Singularity version')
         singularity_module_dn = 'modulefiles/cc/singularity'
         if not os.path.isdir(singularity_module_dn): 
