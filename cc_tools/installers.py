@@ -298,7 +298,7 @@ class LmodManager(Handler):
         self.root = path
 
     def _check_lmod(self,path):
-        """Confirm the spack installation."""
+        """Confirm the Lmod installation."""
         check = command_check(self.lmod_bin_check,cwd=path)
         return (check==self.lmod_returncode)
 
@@ -438,8 +438,9 @@ class LmodManager(Handler):
                     'error':self.ERROR_NOTE+' '+
                     self.ERROR_USER_ROOT_MISSING%root}
                 return
-            # note that we have to enforce the path before the check
-            lmod_checked = self._check_lmod(path=self._enforce_path(root))
+            # the root is an absolte path to the lmod folder hence we do not
+            #   enforce the path here and later during report_ready lmod is added
+            lmod_checked = self._check_lmod(path=path_resolve(root))
             if lmod_checked:
                 self._report_ready()
             else: 
