@@ -72,7 +72,7 @@ def color_printer(override=False,prefix=None):
 
 import subprocess
 
-def command_check(command,cwd=None):
+def command_check(command,cwd=None,quiet=False):
     """Run a command and see if it completes with returncode zero."""
     kwargs = {}
     if cwd: kwargs['cwd'] = cwd
@@ -83,13 +83,13 @@ def command_check(command,cwd=None):
             proc.communicate()
             return proc.returncode
     except Exception as e: 
-        print('warning caught exception on command_check: %s'%e)
+        if not quiet: print('warning caught exception on command_check: %s'%e)
         # we return an invalid bash state to ensure that it cannot match
         #   the returncode on failures
         return -1
 
 def bash(command,log=None,cwd=None,inpipe=None,scroll=True,tag=None,
-	announce=False,local=False,scroll_log=True):
+	announce=False,local=False,scroll_log=True,quiet=False):
 	"""
 	Run a bash command.
 	Development note: tee functionality would be useful however you cannot use pipes with subprocess here.
@@ -196,8 +196,8 @@ def bash(command,log=None,cwd=None,inpipe=None,scroll=True,tag=None,
 		else: stdout,stderr = proc.communicate(input=inpipe.encode('utf-8'))
 	else: raise Exception('invalid options')
 	if not scroll and stderr: 
-		if stdout: print('error','stdout: %s'%stdout.decode('utf-8').strip('\n'))
-		if stderr: print('error','stderr: %s'%stderr.decode('utf-8').strip('\n'))
+		if stdout and not quiet: print('error','stdout: %s'%stdout.decode('utf-8').strip('\n'))
+		if stderr and not quiet: print('error','stderr: %s'%stderr.decode('utf-8').strip('\n'))
 		raise Exception('bash returned error state')
 	# we have to wait or the returncode below is None
 	# note that putting wait here means that you get a log file with the error 
@@ -206,10 +206,10 @@ def bash(command,log=None,cwd=None,inpipe=None,scroll=True,tag=None,
 	if proc.returncode: 
 		if log: raise Exception('bash error, see %s'%log)
 		else: 
-			if stdout:
+			if stdout and not quiet:
 				print('error','stdout:')
 				print(stdout.decode('utf-8').strip('\n'))
-			if stderr:
+			if stderr and not quiet:
 				print('error','stderr:')
 				print(stderr.decode('utf-8').strip('\n'))
 			raise Exception('bash error with returncode %d and stdout/stderr printed above'%proc.returncode)

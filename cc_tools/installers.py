@@ -299,7 +299,7 @@ class LmodManager(Handler):
 
     def _check_lmod(self,path):
         """Confirm the Lmod installation."""
-        check = command_check(self.lmod_bin_check,cwd=path)
+        check = command_check(self.lmod_bin_check,cwd=path,quiet=True)
         return (check==self.lmod_returncode)
 
     def _report_ready(self):
@@ -380,7 +380,8 @@ class LmodManager(Handler):
         # continue with the installation
         try: 
             self._install_lmod(path=build)
-            checked = self._check_lmod(path=build)
+            # enforced build path installs to a subdir called lmod
+            checked = self._check_lmod(path=os.path.join(build,'lmod'))
             if not checked:
                 raise Exception('Lmod failed check after installation.')
             self.root = build
@@ -475,7 +476,8 @@ class SingularityManager(Handler):
     default_build_conf = {'build':'./singularity'}
 
     def _detect_singularity(self):
-        try: which_singularity = bash('which singularity',scroll=False)
+        try: which_singularity = bash('which singularity',
+            scroll=False,quiet=True)
         # error code on which causes an exception
         except: return False
         fn = which_singularity['stdout'].strip()
@@ -495,7 +497,7 @@ class SingularityManager(Handler):
         print('status checking singularity')
         return (command_check(
             self.check_bin,
-            cwd=path)==self.check_returncode)
+            cwd=path,quiet=True)==self.check_returncode)
 
     def _report_ready(self,):
         print('status Singularity is reporting ready')
