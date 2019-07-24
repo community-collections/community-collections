@@ -1,8 +1,12 @@
-# community-collections
+# Community Collections
 A Research Computing Framework for Software Sharing
 
+## Motivation, Citation
+
+See our paper at TODO
 
 ## Dependencies
+
 * python
 * wget
 * bzip2
@@ -17,7 +21,7 @@ Use the following commands to test the code.
 git clone http://github.com/kmanalo/community-collections
 cd community-collections
 ./cc nuke # only if you are developing and want to delete everything
-# erase some stray modulfiles because we do not clean them up
+# erase some stray module files because we do not clean them up
 rm -rf ./modulefiles/julia ./modulefiles/lolcow ./modulefiles/R ./modulefiles/tensorflow
 # clear your own cache if developing
 rm -rf ~/.singularity ~/.cc_images 
@@ -35,7 +39,7 @@ ml R # gets a copy of R from r-base
 # note that the lolcow is broken because it accidentally dumps some text to stdout and blank files
 ```
 
-Version-checking and versionless modules are still under development.
+Version checking and versionless modules are still under development.
 
 ### Testing in a container
 
