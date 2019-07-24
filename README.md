@@ -3,7 +3,7 @@ A Research Computing Framework for Software Sharing
 
 ## Motivation, Citation
 
-See our paper at TODO
+See our paper at https://doi.org/10.1145/3332186.3332199
 
 ## Dependencies
 
