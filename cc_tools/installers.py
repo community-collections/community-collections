@@ -441,7 +441,7 @@ class LmodManager(Handler):
                 return
             # the root is an absolte path to the lmod folder hence we do not
             #   enforce the path here and later during report_ready lmod is added
-            lmod_checked = self._check_lmod(path=path_resolve(root))
+            lmod_checked = self._check_lmod(path=self.root)
             if lmod_checked:
                 self._report_ready()
             else: 
