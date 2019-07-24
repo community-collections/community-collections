@@ -56,6 +56,7 @@ RUN yum install -y git
 RUN yum install -y make
 RUN yum install -y screen
 RUN yum install -y bzip2
+RUN yum install -y cryptsetup
 ```
 
 Without `libtcl` or `squashfs-tools`, the code uses the `conda` environment to supply these. 
