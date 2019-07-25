@@ -181,7 +181,7 @@ class Interface(Parser):
                 write_user_yaml(self.cache['settings'])
         else: print('status no bashrc notes in the settings')
 
-    def nuke(self):
+    def nuke(self,sure=False):
         """Testing only! Reset things! Be careful!"""
         import shutil
         print('status cleaning')
@@ -194,7 +194,7 @@ class Interface(Parser):
         fns += [i for i in glob.glob('modulefiles/*') if i!='modulefiles/cc']
         self.cache = {}
         print('status removing: %s'%', '.join(fns))
-        if confirm('okay to remove the files above?',):
+        if sure or confirm('okay to remove the files above?',):
             for fn in fns: 
                 shutil.rmtree(fn) if os.path.isdir(fn) else os.remove(fn)
             #! os.mkdir('tmp')
