@@ -19,7 +19,6 @@ from .stdtools import say
 from .statetools import Convey
 from .installers import SingularityManager
 from .installers import LmodManager
-from .installers import SpackManager
 from .misc import write_user_yaml
 from .settings import cc_user,default_modulefile_settings,specs
 from .stdtools import bash
