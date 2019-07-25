@@ -295,7 +295,14 @@ class LmodManager(Handler):
             # if we cannot get the latest, we use the verified version
             shell_script(generic_install%dict(url=self.url_lmod,
                 prefix=path,subshellf=subshell))
-        self.root = path
+        # note that lmod always installs to the lmod subfolder of the prefix
+        #   used in configure, and this prefix also contains an lmod folder
+        #   hence we use _enforce_path to check for lmod at the end of the
+        #   build path from the user, then we install to the parent directory
+        #   and then here we add the lmod back on so that the build path and
+        #   the root path eventually written to the settings reflect the true
+        #   prefix directory under the standard convention
+        self.root = os.path.join(path,'lmod')
 
     def _check_lmod(self,path):
         """Confirm the Lmod installation."""
@@ -304,8 +311,7 @@ class LmodManager(Handler):
 
     def _report_ready(self):
         print('status Lmod is reporting ready')
-        # recall that we install the lmod folder into a root path
-        self.root = os.path.join(self.root,'lmod')
+        # use relative path if we installed to a subdirectory
         rel_path = os.path.join('.',os.path.relpath(self.root,os.getcwd()))
         if '..' not in rel_path: self.root = rel_path
         # clear errors from previous runs
@@ -381,10 +387,9 @@ class LmodManager(Handler):
         try: 
             self._install_lmod(path=build)
             # enforced build path installs to a subdir called lmod
-            checked = self._check_lmod(path=os.path.join(build,'lmod'))
+            checked = self._check_lmod(path=self.root)
             if not checked:
                 raise Exception('Lmod failed check after installation.')
-            self.root = build
             self._report_ready()
             self._lmod_profile_changes()
 
@@ -429,7 +434,7 @@ class LmodManager(Handler):
                     'build':'./lmod',
                     'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
         else:
-            self.root = self._enforce_path(root)
+            self.root = root
             if self._check_lmod_prelim(self.root)==self.STATE_ABSENT:
                 self._register_error(name='lmod',
                     error='Cannot find user-specified root: %s.'%root)
