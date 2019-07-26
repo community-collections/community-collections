@@ -58,6 +58,15 @@ RUN yum install -y bzip2
 RUN yum install -y cryptsetup
 ```
 
+On a fresh VM with CentOS7:
+
+```
+# as root
+yum update -y
+yum groupinstall -y 'Development Tools'
+yum install -y wget which vim git make bzip2 cryptsetup
+```
+
 Without `libtcl` or `squashfs-tools`, the code uses the `conda` environment to supply these. 
 
-Note that very recent testing shows that cryptsetup is now required. This may be a change to Golang or something else. This is somewhat frustrating because the dependencies were relatively minimal (see Dockerfile above).
+Note that very recent testing shows that cryptsetup is now required for later versions of Singularity 3.
