@@ -478,7 +478,9 @@ class SingularityManager(Handler):
     check_bin = 'bin/singularity help'
     check_bin_version = 'bin/singularity --version'
     check_returncode = 0 
-    default_build_conf = {'build':'./singularity'}
+    user_namespace_check = 'cat /proc/sys/user/max_user_namespaces'
+    default_build_conf = {'build':'./singularity','sandbox':False}
+    ERROR_USER_NAMESPACES = (('The sandbox flag in the Singularity settings (%s) is necessary when you lack sudo privileges and wish to install Singularity in sandbox mode. This also requires user namespaces. We failed to find user namespaces using "%s".')%(cc_user,user_namespace_check))
 
     def _detect_singularity(self):
         try: which_singularity = bash('which singularity',
@@ -507,8 +509,7 @@ class SingularityManager(Handler):
     def _report_ready(self,):
         print('status Singularity is reporting ready')
         self.cache.get('errors',{}).pop('singularity',None)
-        self.cache['settings']['singularity'] = {
-            'path':self.path}
+        self.cache['settings']['singularity']['path'] = self.path
 
     def _install_singularity(self,path):
         """Installation procedure for singularity 3 from the docs."""
@@ -527,15 +528,30 @@ class SingularityManager(Handler):
         shell_script(script_temp_build)
         self.path = path
 
-    def error_null(self,error,path=None,build=None):
+    def _check_user_namespaces(self):
+        try: result = bash(self.user_namespace_check,scroll=False)
+        except Exception as e: 
+            print('error %s'%str(e))
+            raise Exception(self.ERROR_USER_NAMESPACES)
+        try: max_user_ns = int(result['stdout'].strip())
+        except Exception as e: 
+            print('error %s'%str(e))
+            raise Exception(self.ERROR_USER_NAMESPACES)
+        if max_user_ns<1: 
+            raise Exception(self.ERROR_USER_NAMESPACES+
+                ' Maximum user namespaces is: %d'%max_user_ns)
+
+    def error_null(self,error,path=None,build=None,sandbox=False):
         """Ignore request if error present."""
         print(('warning singularity cannot be installed '
             'until the user edits %s')%cc_user)
         self._register_error(name='singularity',error=
             'The singularity section needs user edits.')
 
-    def detect(self,path):
+    def detect(self,path,sandbox=False):
         """Confirm that Singularity exists in the path given by the user."""
+        # note that the sandbox is not checked during detection but we pass it
+        self.sandbox = sandbox
         if path==self.CHECK_ROOT:
             path = self._detect_singularity()
             if path:
@@ -578,8 +594,13 @@ class SingularityManager(Handler):
                 self.cache['settings']['singularity'] = build_out
                 return
 
-    def build(self,build):
+    def build(self,build,sandbox=False):
         """Build singularity."""
+
+        # confirm user namespaces if we are requesting a sandbox
+        self.sandbox = sandbox
+        if self.sandbox: self._check_user_namespaces()
+
         # check if already built and we lost the config
         checked = self._check_singularity(build)
         if checked:

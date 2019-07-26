@@ -23,7 +23,11 @@ from .misc import write_user_yaml
 from .settings import cc_user,default_modulefile_settings,specs
 from .stdtools import bash
 from .modulefile_templates import modulefile_basic
-from .modulefile_templates import shell_connection_run,shell_connection_exec
+from .modulefile_templates import modulefile_sandbox
+from .modulefile_templates import shell_connection_run
+from .modulefile_templates import shell_connection_exec
+from .modulefile_templates import shell_connection_run_sandbox
+from .modulefile_templates import shell_connection_exec_sandbox
 
 def register_error(self,name,error):
     """
@@ -166,11 +170,13 @@ class UseCase(Handler):
         singularity_module_fn = 'modulefiles/cc/singularity/%s.lua'%version
         with open(singularity_module_fn,'w') as fp:
             fp.write('\n'.join(singularity_modulefile))
-        # save the case for later
+        # save the case for later. this is the sole connection to other parts
+        #   of the code, including the ModuleRequest
         self.cache['case'] = {
             'lmod':lmod_inst.root,
             'modulefiles':lmod_inst.modulefiles,
-            'singularity':singularity_inst.path,}
+            'singularity':singularity_inst.path,
+            'sandbox':singularity_inst.sandbox}
         # optional information
         if spack and spack_inst!=False:
             self.cache['case']['spack'] = spack_inst.abspath
@@ -284,8 +290,15 @@ class ModuleRequest(Handler):
     def singularity_pull(self,name,source=None,
         version='latest',shell=None,calls=None,repo=None):
         """Develop a singularity pull function."""
-        # always use lua
-        is_tcl,text = False,modulefile_basic
+        use_sandbox = self.cache['settings']['singularity'].get('sandbox',False)
+        if use_sandbox:
+            shell_run = shell_connection_run_sandbox
+            shell_exec = shell_connection_exec_sandbox
+            text = modulefile_sandbox
+        else:
+            shell_run = shell_connection_run 
+            shell_exec = shell_connection_exec
+            text = modulefile_basic
 
         # prepare the spot for the image
         if not source: source = self.cache['module_settings']['source']
@@ -332,7 +345,7 @@ class ModuleRequest(Handler):
         if ((calls and name not in calls) or not calls) and shell!=False:
             # +++ by default map the module name to singularity run
             # +++ allow the shell parameter to use a different alias
-            shell_calls += shell_connection_run%dict(
+            shell_calls += shell_run%dict(
                 alias=name if shell==None else shell)
         # +++ extra aliases
         elif calls:
@@ -340,7 +353,7 @@ class ModuleRequest(Handler):
             if isinstance(calls,list):
                 calls = dict([(i,i) for i in calls])
             for k,v in calls.items():
-                shell_calls += shell_connection_exec%dict(alias=k,target=v)
+                shell_calls += shell_exec%dict(alias=k,target=v)
         detail['shell_connections'] = shell_calls
 
         # write a single hidden base modulefile
