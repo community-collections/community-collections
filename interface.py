@@ -185,10 +185,11 @@ class Interface(Parser):
                 write_user_yaml(self.cache['settings'])
         else: print('status no bashrc notes in the settings')
 
-    def reset(self,sure=False):
+    def clean(self,sure=False):
         """
         Remove all installed components from this folder. 
-        Use this command to reinstall supporting software.
+        Use this command before reinstalling supporting software with
+        the refresh command.
         """
         import shutil
         print('status cleaning')
