@@ -269,7 +269,7 @@ class Interface(Parser):
             print('status run the following commands as '
                 'root to give singularity the standard permissions: ')
             print('\n'+'\n'.join(recommend)+'\n')
-            if force:
+            if enable:
                 print('status attempting to run the commands above')
                 from cc_tools.misc import shell_script
                 result = shell_script('\n'.join(recommend))
