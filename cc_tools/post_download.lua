@@ -59,6 +59,19 @@ function check_image_sizes()
         io.stderr:write("[CC] note that your image folder contains " ..
             "sandboxes\n[CC] and sandboxes often have many files!" .. "\n")
     end
+    -- run du on the singularity folder as a warning
+    if isDir(os.getenv("HOME") .. "/" .. ".singularity") then
+        local result_du = os.capture(
+            "du -s " .. os.getenv("HOME") .. "/" .. ".singularity")
+        local size = tonumber(string.match(result_du,'^%d+'))
+        if size>16 then
+            total_size = total_size + size/1024
+            io.stderr:write(string.format(
+                "[CC] the ~/.singularity folder is also %.0fMB\n",size/1024))
+            io.stderr:write("[CC] you can clear the singularity cache with: " ..
+                "\"singularity cache clean -f\"" .. "\n")
+        end
+    end
 end
 
 io.stderr:write("[CC] downloaded the image: " .. target_fn .. "\n")
