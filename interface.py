@@ -269,10 +269,11 @@ class Interface(Parser):
             print('status run the following commands as '
                 'root to give singularity the standard permissions: ')
             print('\n'+'\n'.join(recommend)+'\n')
+            print('status Run "sudo ./cc enable" to do this automatically.')
             if enable:
                 print('status attempting to run the commands above')
                 from cc_tools.misc import shell_script
-                result = shell_script('\n'.join(recommend))
+                result = shell_script('\n'.join(recommend),strict=True)
                 if not result:
                     #! under development
                     raise Exception('setting admin rights failed')

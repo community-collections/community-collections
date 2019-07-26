@@ -81,6 +81,7 @@ def enforce_env():
 
 def shell_script(script,subshell=None,bin='bash',strict=True):
     """Run an anonymous bash script."""
+	#! strict is not connected
     if not subshell: subshell = lambda x:x
     out = script.strip()
     print('status executing the following script')
