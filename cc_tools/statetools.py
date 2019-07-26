@@ -94,7 +94,7 @@ class Cacher(object):
                 if self.cache.get('languish',False): return
                 if self.cache_policy!='empty': 
                     self.cache['error'] = str(exception)
-                self.standard_write()
+                self._standard_write()
                 if exception!=None:
                     # suppress exceptions if requested
                     if not self.cache.pop('traceback_off',False): 
@@ -106,8 +106,8 @@ class Cacher(object):
                 # apply the hooks before write
                 #! hooks are not used on _try_except above for debugging
                 if self.closer: self.closer()
-                self.standard_write()
-            def standard_write(self):
+                self._standard_write()
+            def _standard_write(self):
                 if self.cache_policy=='standard': 
                     if self.reserve_policy:
                         if self.cache==self.cache_copy:
@@ -160,16 +160,24 @@ class Parser:
     Convert all methods in a subclass into argparse and run with cacher.
     """
     __metaclass__ = Singleton
-    def __init__(self):
+    # protected functions from Cacher hidden from argparse 
+    protected_functions = ['closer','errorclear','establish']
+    parser_order = False
+    def __init__(self,parser_order=None):
         subject = self
         subcommand_names = [func for func in dir(subject) 
             if callable(getattr(subject, func))
-            and not func.startswith('_')]
+            # hide functions with underscores and ignore a closer for Cacher
+            and not func.startswith('_') and not func in self.protected_functions]
+        #! under development: need a custom ordering!
+        if self.parser_order:
+            subcommand_names = ([i for i in subcommand_names if i in parser_order]+
+                [i for i in subcommand_names if i not in parser_order])
         parser = argparse.ArgumentParser(
             description='Manager.')
         subparsers = parser.add_subparsers(title='subcommands',
-            description='valid subcommands',
-            help='additional help')
+            description='Valid subcommands:',
+            help='Use the help flag (-h) for more details on each subcommand.')
         for name in subcommand_names:
             func = getattr(self,name)
             detail = {}
@@ -233,7 +241,7 @@ class Parser:
 
     def debug(self):
         """
-        Interactive mode.
+        Use an interactive mode to debug the program.
         """
         import code
         sys.ps1 = "[cc] >>> "

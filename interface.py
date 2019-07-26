@@ -68,7 +68,7 @@ class Interface(Parser):
         self.cache['settings'] = settings
         return settings
 
-    def bootstrap(self):
+    def _bootstrap(self):
         """
         Build the environment, detect existing components, 
         and write a configuration.
@@ -89,7 +89,7 @@ class Interface(Parser):
             self.cache['prefix'] = os.path.join(os.getcwd(),
                 os.path.sep.join([miniconda_root,'envs',specs['envname']]))
             self.cache['ready'] = True
-            self.standard_write()
+            self._standard_write()
         # continue once cache reports ready
         else: pass
         # after the a bootstrap we call refresh to continue
@@ -109,7 +109,11 @@ class Interface(Parser):
 
     def refresh(self,debug=False):
         """
-        Main execution loop.
+        The MAIN function. Start here. 
+        Update modulefiles and install necessary components. 
+        This command interprets cc.yaml, which is created if needed.
+        Install Community-Collections with this command, edit cc.yaml 
+        to customize it, and then refresh again.
         """
         # turn on state debugging
         if debug: self.cache._debug = True
@@ -181,8 +185,11 @@ class Interface(Parser):
                 write_user_yaml(self.cache['settings'])
         else: print('status no bashrc notes in the settings')
 
-    def nuke(self,sure=False):
-        """Testing only! Reset things! Be careful!"""
+    def reset(self,sure=False):
+        """
+        Remove all installed components from this folder. 
+        Use this command to reinstall supporting software.
+        """
         import shutil
         print('status cleaning')
         fns = [i for j in [glob.glob(k) for k in [
@@ -201,14 +208,27 @@ class Interface(Parser):
             print('status done')
 
     def showcache(self):
+        """
+        Print the internal cache for the cc program during debugging.
+        """
         self.cache._debug = False
         from cc_tools.stdtools import treeview
         treeview(self.cache,style='pprint')
 
-    def admin_check(self,force=False):
+    def enable(self):
         """
-        This command checks if the administrator has enabled singularity.
-        It provides a report for the commands to activate.
+        Use sudo to enable many features provided by Singularity 3. 
+        This command reports the setuid modifications to the Singularity
+        installation.
+        """
+        self.capable(enable=True)
+
+    def capable(self,enable=False):
+        """
+        This command checks if the administrator has enabled Singularity.
+        If Singularity does not have the setuid enabled, it will provide
+        instructions for a root user to enable it. See the "enable" 
+        subcommand to do this automatically.
         """
         # catch errors here
         self.cache['traceback_off'] = False
