@@ -120,7 +120,7 @@ class Interface(Parser):
         # rerun the bootstrap if not ready or cache was removed
         if not self.cache.get('ready',False):
             print('status failed to find cache so running bootstrap again')
-            self.bootstrap()
+            self._bootstrap()
             return
         # ensure that a cc.yaml file exists
         kickstart_yaml()
