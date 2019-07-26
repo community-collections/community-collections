@@ -18,21 +18,41 @@ See our paper at https://doi.org/10.1145/3332186.3332199
 Use the following commands to test the code.
 
 ```
-git clone http://github.com/kmanalo/community-collections
+
+# obtain community collections
+git clone http://github.com/community-collections/community-collections
 cd community-collections
+
+# optional: clean ups if you intend to start over
 ./cc clean # only if you are developing and want to delete everything
 # erase some stray module files because we do not clean them up
 rm -rf ./modulefiles/julia ./modulefiles/lolcow ./modulefiles/R ./modulefiles/tensorflow
 # clear your own cache if developing
 rm -rf ~/.singularity ~/.cc_images 
+
+# start here for the first time
 ./cc refresh
-vi cc.yaml # remove error notes to build Lmod and Singularity locally
-./cc profile  # generates profile_cc.sh and adds it to ~/.bashrc (only contains references to Lmod)
+# we generate a cc.yaml so please have a look!
+#   cc.yaml: remove error notes to build Lmod and Singularity locally if needed
+vi cc.yaml 
+# run cc refresh again after updating file
+./cc refresh
+
+# source initialization, user needs to affirm how cc is loaded into their environment
+#   'cc profile' generates profile_cc.sh and adds it to ~/.bashrc (only contains references to Lmod)
+./cc profile  
 # if you wish to skip bashrc changes and only make the profile_cc.sh, use ./cc profile --no-bashrc
+# source the file to enable cc
 source profile_cc.sh # or get a new login shell if you said "y" to adding to your bashrc
+
+# cc
 ml av # cc/conda supplies miniconda; cc/env supplies the conda env; and singularity is available as module
+
+# if you not root you may need to check if singularity is capable
 ./cc capable
 sudo ./cc enable # sudo is required for sif files (no switch yet to enable sandboxes if you have userns)
+
+# some examples of loading modules
 ml julia # triggers the example singularity pull from docker
 ml tensorflow # pulls a specific version with a suffix (see the default cc.yaml)
 ml R # gets a copy of R from r-base
