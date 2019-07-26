@@ -11,6 +11,8 @@ See our paper at https://doi.org/10.1145/3332186.3332199
 * wget
 * bzip2
 
+We are also assuming that the user's default shell is Bash.
+
 ## Development notes
 
 ### Testing
@@ -18,7 +20,6 @@ See our paper at https://doi.org/10.1145/3332186.3332199
 Use the following commands to test the code.
 
 ```
-
 # obtain community collections
 git clone http://github.com/community-collections/community-collections
 cd community-collections
@@ -45,10 +46,10 @@ vi cc.yaml
 # source the file to enable cc
 source profile_cc.sh # or get a new login shell if you said "y" to adding to your bashrc
 
-# cc
+# cc is live after you source a related file or agree to login shell mods
 ml av # cc/conda supplies miniconda; cc/env supplies the conda env; and singularity is available as module
 
-# if you not root you may need to check if singularity is capable
+# if you are not root you may need to check if singularity is capable
 ./cc capable
 sudo ./cc enable # sudo is required for sif files (no switch yet to enable sandboxes if you have userns)
 
