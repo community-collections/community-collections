@@ -509,6 +509,14 @@ class SingularityManager(Handler):
     def _report_ready(self,):
         print('status Singularity is reporting ready')
         self.cache.get('errors',{}).pop('singularity',None)
+        if 'singularity' not in self.cache['settings']:
+            # upon singularity detection we populate the cc.yaml entry here
+            #   and assume that sandbox is irrelevant because it was installed
+            #   by a third party presumably with root
+            # note that during detection a singularity at 
+            #   /usr/local/bin/singularity will result in /usr/local being
+            #   marked as the path to singularity however this is not an issue
+            self.cache['settings']['singularity'] = {}
         self.cache['settings']['singularity']['path'] = self.path
 
     def _install_singularity(self,path):
