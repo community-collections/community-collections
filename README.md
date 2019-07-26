@@ -53,11 +53,11 @@ ml av # cc/conda supplies miniconda; cc/env supplies the conda env; and singular
 ./cc capable
 sudo ./cc enable # sudo is required for sif files (no switch yet to enable sandboxes if you have userns)
 
-# some examples of loading modules
-ml julia # triggers the example singularity pull from docker
+# some examples of loading modules, community collections will 'pull' the image with the 
+# combined power of Singularity and Lmod !
+ml julia      # triggers the example singularity pull from docker
 ml tensorflow # pulls a specific version with a suffix (see the default cc.yaml)
-ml R # gets a copy of R from r-base
-# note that the lolcow is broken because it accidentally dumps some text to stdout and blank files
+ml R          # gets a copy of R from r-base
 ```
 
 Version checking and versionless modules are still under development.
