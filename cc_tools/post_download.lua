@@ -11,6 +11,7 @@ local target_fn = arg[2]
 local my_module_name = arg[3]
 
 function isDir(name)
+    -- via https://stackoverflow.com/a/21637668/3313859
     local cd = lfs.currentdir()
     local is = lfs.chdir(name) and true or false
     lfs.chdir(cd)
@@ -18,6 +19,7 @@ function isDir(name)
 end
 
 function os.capture(cmd, raw)
+    -- via https://stackoverflow.com/a/326715/3313859
     local f = assert(io.popen(cmd, 'r'))
     local s = assert(f:read('*a'))
     f:close()
