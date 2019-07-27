@@ -33,3 +33,4 @@ whitelist:
     shell: false
     source: docker
     version: 1.12.3-gpu-py3
+    gpu: true

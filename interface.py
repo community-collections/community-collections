@@ -143,7 +143,7 @@ class Interface(Parser):
         Note that the explicit flag will direct changes to a profile.
         """
         self._get_settings()
-        mods = self.cache.get('settings',{}).get('bashrc',{}).get('mods',[])
+        mods = self.cache.get('settings',{}).get('profile',{}).get('mods',[])
         if not explicit: 
             profile_detail = dict(
                 fn=os.path.abspath(os.path.expanduser(profile)),

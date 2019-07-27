@@ -296,7 +296,7 @@ class ModuleRequest(Handler):
         fn = os.path.join(dn,fn)
         with open(fn,'w') as fp: fp.write(text)
     def singularity_pull(self,name,source=None,
-        version='latest',shell=None,calls=None,repo=None):
+        version='latest',shell=None,calls=None,repo=None,gpu=False):
         """Develop a singularity pull function."""
         use_sandbox = self.cache['settings']['singularity'].get('sandbox',False)
         if use_sandbox:
@@ -317,7 +317,8 @@ class ModuleRequest(Handler):
             'envs',specs['envname'])
         detail = dict(
             image_spot=self.image_spot,
-            conda_env=conda_env_relpath)
+            conda_env=conda_env_relpath,
+            extras=[])
 
         # prepare the source for the pull command
         if source=='docker':
@@ -364,8 +365,15 @@ class ModuleRequest(Handler):
                 shell_calls += shell_exec%dict(alias=k,target=v)
         detail['shell_connections'] = shell_calls
 
+        # extra bells and whistles for the modulefile
+        if gpu:
+            detail['extras'].append('add_property("arch","gpu")')
+
         # write a single hidden base modulefile
         if versions:
+            if detail.get('extras',None):
+                detail['extras'] = '\n'+'\n'.join(detail['extras'])
+            else: detail['extras'] = ''
             self._write_modulefile(dn=dn,fn='.base',
                 text=text%detail)
 

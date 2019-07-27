@@ -16,6 +16,12 @@ end
 local images_dn_abs = resolve_tilde(images_dn)
 local target_fn = pathJoin(images_dn_abs,target)
 
+if lfs.attributes(target_fn) then
+    add_property("cc_status","ready")
+else
+    add_property("cc_status","available")
+end
+%%(extras)s
 if mode()=="load" then
 
     -- make a cache directory

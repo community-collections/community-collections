@@ -55,6 +55,12 @@ script_temp_build = script_temp_build_base%dict(source_env='')
 script_temp_build_env = script_temp_build_base%dict(
     source_env=script_source_env)
 
+# one-liner to add a path without redundancy
+bash_env_append = (
+    '%(name)s () { if [ -s "$1" ] && '
+    '[[ ":$%(var)s:" != *":$1:"* ]]; '
+    'then export %(var)s=${%(var)s:+$%(var)s:}$1; fi }')
+
 # installation method for miniconda
 install_miniconda = script_temp_build%dict(script="""
 wget --no-check-certificate --progress=bar:force https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -225,6 +231,7 @@ class LmodManager(Handler):
     lua_reqs = ('posix','lfs')
     # account for the removal of the lmod root path here
     lmod_bin_check = './lmod/libexec/lmod help'
+    default_local_lmod = './lmod'
     lmod_returncode = 0
     # location for modulefiles to add to the module path
     modulefiles = './modulefiles'
@@ -318,6 +325,14 @@ class LmodManager(Handler):
         self.cache.get('errors',{}).pop('lmod',None)
         # manage the entire connection to lmod in the settings here
         self.cache['settings']['lmod'] = {'root':self.root}
+        # lmod also includes updates to LMODRC
+        # note that we use the keyed nature of profile_mods to overwrite
+        #   any similar changes to the profile
+        lmodrc_fn = os.path.abspath(os.path.join(os.getcwd(),
+            'cc_tools','lmodrc.lua'))
+        self.cache['profile_mods']['lmod_property'] = [
+            bash_env_append%dict(name='post_add_luarc',var='LMOD_RC'),
+            'post_add_luarc %s'%(lmodrc_fn)]
 
     def _detect_lmod(self):
         """
@@ -331,6 +346,9 @@ class LmodManager(Handler):
             if split_path[-3:]==['lmod','libexec','lmod']:
                 # the true path to lmod
                 return os.path.sep.join(split_path[:-3])
+        # check for an orphaned local lmod at the default location
+        if self._check_lmod(self.default_local_lmod):
+            return self.default_local_lmod
         return False
 
     def _lmod_profile_changes(self):
@@ -426,13 +444,13 @@ class LmodManager(Handler):
                     self._register_error(name='lmod',
                         error='Failed to find Lmod. Need build path from the user.')
                     self.cache['settings']['lmod'] = {
-                        'build':'./lmod',
+                        'build':self.default_local_lmod,
                         'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
             else:
                 self._register_error(name='lmod',
                     error='Failed to find Lmod. Need build path from the user.')
                 self.cache['settings']['lmod'] = {
-                    'build':'./lmod',
+                    'build':self.default_local_lmod,
                     'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
         else:
             self.root = root
@@ -441,7 +459,7 @@ class LmodManager(Handler):
                     error='Cannot find user-specified root: %s.'%root)
                 self.cache['settings']['lmod'] = {
                     # add in the default
-                    'build':'./lmod',
+                    'build':self.default_local_lmod,
                     'error':self.ERROR_NOTE+' '+
                     self.ERROR_USER_ROOT_MISSING%root}
                 return
@@ -458,7 +476,7 @@ class LmodManager(Handler):
                     self.ERROR_NOTE)
                 self.cache['settings']['lmod'] = {
                     #!! add in the default
-                    'build':'./lmod',
+                    'build':self.default_local_lmod,
                     'error':self.ERROR_NOTE+' '+
                     self.ERROR_USER_ROOT_FAIL%root}
 
