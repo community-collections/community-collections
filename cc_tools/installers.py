@@ -506,7 +506,7 @@ class SingularityManager(Handler):
             self.check_bin,
             cwd=path,quiet=True)==self.check_returncode)
 
-    def _report_ready(self,):
+    def _report_ready(self,built=False):
         print('status Singularity is reporting ready')
         self.cache.get('errors',{}).pop('singularity',None)
         if 'singularity' not in self.cache['settings']:
@@ -517,6 +517,9 @@ class SingularityManager(Handler):
             #   /usr/local/bin/singularity will result in /usr/local being
             #   marked as the path to singularity however this is not an issue
             self.cache['settings']['singularity'] = {}
+        # if we are reporting ready and we built it, then we now have a path
+        self.cache['settings']['singularity'].pop('build',None)
+        # note that we could compare the build to the install path here
         self.cache['settings']['singularity']['path'] = self.path
 
     def _install_singularity(self,path):
