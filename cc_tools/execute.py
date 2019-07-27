@@ -40,7 +40,7 @@ def register_error(self,name,error):
 
 class Preliminary(Handler):
     """Clean up the user settings. Runs before Execute."""
-    def ignore_report(self,report=None,bashrc=None,**kwargs):
+    def ignore_report(self,report=None,profile=None,**kwargs):
         return kwargs
 
 class UseCase(Handler):
@@ -59,20 +59,25 @@ class UseCase(Handler):
         Add a list of bashrc changes to the user settings.
         The user can apply the changes with ./cc update_bashrc
         """
-        mods = self.cache.pop('bashrc_mods',{})
+        mods = self.cache.pop('profile_mods',{})
         # mods are categorical: only one change per category is allowed
         #   discard the category names and keep the values
         mods = list([i for j in mods.values() for i in j])
         if mods:
             # add modifications to existing ones in the settings
-            mods_prev = self.cache['settings'].get('bashrc',{}).get('mods',[])
+            # note that we have renamed "bashrc" to "profile" in the settings
+            mods_prev = self.cache['settings'].get('profile',{}).get('mods',[])
             mods = mods_prev + mods
-            self.cache['settings']['bashrc'] = {'instructions':(
-                'Run ./cc update_bashrc to add modules to your environment '
-                'automatically. Alternately, you can add the items in the '
-                '"mods" list in the bashrc dictionary to '
-                'your ~/.bashrc file (be sure to remove yaml syntax). '
-                'Run `source ~/.bashrc` or log in again to use CC properly. '),
+            # the mods are always presented here in the settings for reference
+            self.cache['settings']['profile'] = {'instructions':(
+                'Run ./cc profile to generate a script (profile_cc.sh) '
+                'which makes community collections available to a user '
+                '(and also attempts to source this script from your ~/.bashrc '
+                'unless --no-bashrc is supplied). Alternately, you can add '
+                'these items to your system profile manually. Remember that '
+                '~/.bashrc changes are not immediate, hence you must run '
+                '"source profile_cc.sh" to use community collections now, or '
+                'generate a new login shell.'),
                 'mods':mods}
 
     def main(self,
@@ -170,6 +175,7 @@ class UseCase(Handler):
         singularity_module_fn = 'modulefiles/cc/singularity/%s.lua'%version
         with open(singularity_module_fn,'w') as fp:
             fp.write('\n'.join(singularity_modulefile))
+
         # save the case for later. this is the sole connection to other parts
         #   of the code, including the ModuleRequest
         self.cache['case'] = {
@@ -177,7 +183,9 @@ class UseCase(Handler):
             'modulefiles':lmod_inst.modulefiles,
             'singularity':singularity_inst.path,
             'sandbox':singularity_inst.sandbox}
+
         # optional information
+        #! connection to spack is under consideration
         if spack and spack_inst!=False:
             self.cache['case']['spack'] = spack_inst.abspath
         self._shutdown()

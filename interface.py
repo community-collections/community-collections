@@ -152,10 +152,8 @@ class Interface(Parser):
         else: profile_detail = None
         # always write a profile script
         if profile_detail and profile_detail['mods']: 
-        #! ideally we would compare the existing profile to
-            #!   see if we need to add to it but for now we are strict
-            if os.path.isfile(profile_detail['fn']):
-                raise Exception('refusing to overwrite %s'%profile_detail['fn'])
+            # removed overwrite protection because the profile is permanently
+            #   stored in the settings hence you can regenerate it at will
             with open(profile_detail['fn'],'w') as fp:
                 fp.write('\n'.join(profile_detail['mods']))
             print('status to use CC, run: source %s'%
@@ -169,8 +167,7 @@ class Interface(Parser):
                 bashrc_fn = os.path.expanduser('~/.bashrc')
                 if os.path.isfile(bashrc_fn):
                     with open(bashrc_fn) as fp: text = fp.read()
-                    previous = [m for m in mods if 
-                        re.search(m,text)]
+                    previous = [m for m in mods if re.search(m,text)]
                     if any(previous):
                         raise Exception('refusing to update because bashrc contains '
                             ' modifications from a previous run: %s'%str(previous))
@@ -296,11 +293,12 @@ class Interface(Parser):
                 'patch cc.yaml cc_tools/test_install_lmod.diff',
                 './cc refresh',]+(
                     ['patch cc.yaml cc_tools/test_sandbox.diff']
-                    if sandbox else ())+
+                    if sandbox else [])+
                 ['patch cc.yaml cc_tools/test_install_singularity.diff',
                 './cc refresh',
-                'rm -f profile_cc.sh',
                 './cc profile --no-bashrc',
+                # note that after this test you can remove cc.yaml and refresh
+                #   in which case lmod is found but singularity needs a path
                 ],
             }
         if name not in commands:

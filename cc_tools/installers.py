@@ -316,6 +316,7 @@ class LmodManager(Handler):
         if '..' not in rel_path: self.root = rel_path
         # clear errors from previous runs
         self.cache.get('errors',{}).pop('lmod',None)
+        # manage the entire connection to lmod in the settings here
         self.cache['settings']['lmod'] = {'root':self.root}
 
     def _detect_lmod(self):
@@ -334,8 +335,8 @@ class LmodManager(Handler):
 
     def _lmod_profile_changes(self):
         # stage some bashrc changes only if we just installed
-        if 'bashrc_mods' not in self.cache: 
-            self.cache['bashrc_mods'] = {}
+        if 'profile_mods' not in self.cache: 
+            self.cache['profile_mods'] = {}
         init_fn = os.path.abspath(os.path.join(self.root,'lmod/init/bash'))
         if not os.path.isfile(init_fn):
             raise Exception('cannot find %s'%init_fn)
@@ -344,7 +345,7 @@ class LmodManager(Handler):
             os.path.abspath(self.modulefiles),'source %s'%init_fn]
         # Lmod also needs to know the cc root for some of our modulefiles
         mods += ['export _COMCOL_ROOT="%s"'%os.path.realpath(os.getcwd())]
-        self.cache['bashrc_mods']['lmod'] = mods
+        self.cache['profile_mods']['lmod'] = mods
 
     ### interpret lmod settings (each method below reads possible inputs)
 
@@ -628,19 +629,10 @@ class SingularityManager(Handler):
             if not checked:
                 raise Exception('Singularity failed check after installation.')
             self.path = build
+            # we previously staged some profile/bashrc changes here however
+            #   this is deprecated by the use of an external module that can
+            #   add singularity to the path
             self._report_ready()
-            # stage some bashrc changes only if we just installed
-            #! deprecated. see below
-            if False and 'bashrc_mods' not in self.cache: 
-                self.cache['bashrc_mods'] = {}
-            build_bin_dn = os.path.join(os.path.abspath(
-                os.path.expanduser(build)),'bin')
-            #! adding singularity to profile_cc.sh is deprecated because
-            #!   the modulefiles themselves can load the module (cc/singularity)
-            if False:
-                #! if you return this to service, update bashrc_mods with category
-                mods = ['export PATH=%s:$PATH'%build_bin_dn]
-                self.cache['bashrc_mods'].extend(mods)
 
         # exceptions are handled later by UseCase
         #! note that the entire construction of SingularityManager is
