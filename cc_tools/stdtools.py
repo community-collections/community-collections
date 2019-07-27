@@ -418,9 +418,7 @@ class Handler(object):
 					for i,j in self._taxonomy.items() if i in spillovers]
 				if not spills: self._matchless(args)
 				scores = dict([(i,len(j)) for i,j in spills])
-				try: score_min = min(scores.values())
-				except:
-					import ipdb;ipdb.set_trace()
+				score_min = min(scores.values())
 				matches_lax = [i for i,j in scores.items() if j==score_min]
 				if len(matches_lax)==0: self._matchless(args)
 				elif len(matches_lax)==1: return matches_lax[0]
@@ -592,7 +590,6 @@ def tracebacker_base(exc_type,exc_obj,exc_tb,debug=False):
 		print(say(tracetext))	
 		print(say('[ERROR]','red_black')+' '+say('%s'%exc_obj,'cyan_black'))
 		print(say('[DEBUG] entering the debugger','mag_gray'))
-		import ipdb;ipdb.set_trace()
 		pdb_this.pm()
 
 def tracebacker(*args,**kwargs):
