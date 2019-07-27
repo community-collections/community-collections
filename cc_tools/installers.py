@@ -63,26 +63,12 @@ bash_env_append = (
 
 # installation method for miniconda
 install_miniconda = script_temp_build%dict(script="""
-wget --no-check-certificate --progress=bar:force https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+wget --progress=bar:force """
+"""https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh -b -p %(miniconda_path)s -u
 """)
 
-# manage LD_LIBRARY_PATH for miniconda
-conda_activate_ld_path = """#!/bin/bash
-ADDS=$CONDA_PREFIX/lib
-# append to the library path if absent
-if [[ ":$LD_LIBRARY_PATH:" != *":$ADDS:"* ]]; then
-    additions=${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$ADDS
-    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$ADDS
-fi
-# hardcode the library dependencies here
-#! this needs review in case it conflicts with the system libraries
-#!   which would be apparent if you get a libtcl error
-if [[ ":$LD_RUN_PATH" != *":$ADDS:"* ]]; then
-    additions=${LD_RUN_PATH:+$LD_RUN_PATH:}$ADDS
-    export LD_RUN_PATH=${LD_RUN_PATH:+$LD_RUN_PATH:}$ADDS
-fi
-"""
+# manage library paths for for miniconda
 conda_deactivate_ld_path = """#!/bin/bash
 pathremove () {
   local IFS=':'
@@ -100,10 +86,27 @@ pathremove $CONDA_PREFIX/lib LD_LIBRARY_PATH
 pathremove $CONDA_PREFIX/lib LD_RUN_PATH
 """
 
+conda_activate_ld_path = """#!/bin/bash
+# via https://stackoverflow.com/a/24515432/3313859
+append() {
+  local var=$1
+  local val=$2
+  local sep=${3:-":"}
+  [[ ${!var} =~ (^|"$sep")"$val"($|"$sep") ]] && return # already present
+  [[ ${!var} ]] || { printf -v "$var" '%s' "$val" && return; } # empty
+  printf -v "$var" '%s%s%s' "${!var}" "$sep" "${val}" # append
+}
+# append conda library in two places to avoid absent libtcl error
+#! this needs review
+append LD_LIBRARY_PATH $CONDA_PREFIX/lib
+append LD_RUN_PATH $CONDA_PREFIX/lib
+"""
+
+
 # generic configure-make script
 generic_install = script_temp_build_env%dict(script="""
 URL=%(url)s
-wget --no-check-certificate --progress=bar:force $URL
+wget --progress=bar:force $URL
 SOURCE_FN=${URL##*/}
 DN=$(tar tf $SOURCE_FN | head -1 | cut -f1 -d"/")
 tar xf $SOURCE_FN
@@ -129,7 +132,7 @@ end
 # install singularity 3
 script_singularity3_install = """
 export VERSION=1.11 OS=linux ARCH=amd64
-wget --no-check-certificate --progress=bar:force https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
+wget --progress=bar:force https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
 tar xf go$VERSION.$OS-$ARCH.tar.gz --checkpoint=.100 && echo
 cd go
 export PATH=$(realpath .)/bin:$PATH
@@ -330,6 +333,8 @@ class LmodManager(Handler):
         #   any similar changes to the profile
         lmodrc_fn = os.path.abspath(os.path.join(os.getcwd(),
             'cc_tools','lmodrc.lua'))
+        if 'profile_mods' not in self.cache: 
+            self.cache['profile_mods'] = {}
         self.cache['profile_mods']['lmod_property'] = [
             bash_env_append%dict(name='post_add_luarc',var='LMOD_RC'),
             'post_add_luarc %s'%(lmodrc_fn)]

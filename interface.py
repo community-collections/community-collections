@@ -175,7 +175,7 @@ class Interface(Parser):
                     with open(bashrc_fn,'w') as fp: 
                         fp.write(text)
                 print('status to continue, log in again or '
-                    'run this: source ~/.bashrc')
+                    'use "source ~/.bashrc"')
                 #! should we record this in the cache?
                 if 'bashrc' in self.cache['settings']:
                     del self.cache['settings']['bashrc']
@@ -303,7 +303,7 @@ class Interface(Parser):
             }
         if name not in commands:
             raise Exception('invalid test "%s". select from: %s'%(
-                style,commands.keys()))
+                name,commands.keys()))
         for cmd in commands[name]:
             #! bash function fails here with ascii error bash(cmd,announce=True)
             #! issue: fix the bash function and replace the system call below
