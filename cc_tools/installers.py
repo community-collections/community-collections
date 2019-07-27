@@ -497,6 +497,19 @@ class SingularityManager(Handler):
             else: return root
         else: return False
 
+    def _detect_singularity_local(self):
+        """
+        Check the local build path for a singularity in case we lost
+        the settings file and need to autodetect local singularity that is
+        not in the path because it is managed by modulefiles not yet available.
+        """
+        local_singularity_dn = './singularity'
+        local_singularity_fn = './singularity/bin/singularity'
+        if (os.path.isdir('./singularity') 
+            and os.path.isfile(local_singularity_fn)):
+            return local_singularity_dn
+        else: return False
+
     def _check_singularity_prelim(self,path):
         if os.path.isdir(path): return self.STATE_CONFIRM
         else: return self.STATE_ABSENT
@@ -565,7 +578,12 @@ class SingularityManager(Handler):
         # note that the sandbox is not checked during detection but we pass it
         self.sandbox = sandbox
         if path==self.CHECK_ROOT:
+            # look for singularity with "which"
             path = self._detect_singularity()
+            # if we lost our cc.yaml we might also check the local
+            #   singularity folder, which is a common build location
+            #   to find a preexisting build there
+            if not path: path = self._detect_singularity_local()
             if path:
                 self.path = path
                 checked = self._check_singularity(path=self.path)
