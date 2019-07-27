@@ -1,0 +1,12 @@
+--- cc.yamlo	2019-07-25 14:32:50.759386375 -0400
++++ cc.yaml	2019-07-25 14:33:17.737319513 -0400
+@@ -1,9 +1,6 @@
+ images: ~/.cc_images
+ lmod:
+   build: ./lmod
+-  error: ERROR. Remove this note and follow these instructions to continue. Cannot
+-    locate Lmod. Set the `build` key to a desired installation location, remove this
+-    error, and refresh to continue.
+ module_settings:
+   source: docker
+ singularity:

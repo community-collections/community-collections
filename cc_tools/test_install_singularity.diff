@@ -1,0 +1,12 @@
+--- bak	2019-07-26 22:05:15.010456240 -0400
++++ cc.yaml	2019-07-26 22:05:23.708433855 -0400
+@@ -14,9 +14,6 @@
+   source: docker
+ singularity:
+   build: ./singularity
+-  error: ERROR. Remove this note and follow these instructions to continue. Cannot
+-    locate Singularity. Set the `build` key to a desired installation location, remove
+-    this error, and refresh to continue.
+   sandbox: false
+ whitelist:
+   R:

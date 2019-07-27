@@ -278,6 +278,38 @@ class Interface(Parser):
                     #! under development
                     raise Exception('setting admin rights failed')
         else: print('status singularity is owned by root and ready for use')
+    
+    def test(self,name,sandbox=False,sure=False):
+        """
+        Run a unit test. Simulations the installs, settings edits, and refresh.
+        """
+        if not sure:
+            # we force the sure flag to avoid interfacing the bash function
+            #   with user input for now
+            raise Exception(
+                'You must pass the "--sure" flag however BE CAREFUL because '
+                'this deletes any locally-installed software.')
+        commands = {
+            'base':[
+                './cc clean --sure',
+                './cc refresh',
+                'patch cc.yaml cc_tools/test_install_lmod.diff',
+                './cc refresh',]+(
+                    ['patch cc.yaml cc_tools/test_sandbox.diff']
+                    if sandbox else ())+
+                ['patch cc.yaml cc_tools/test_install_singularity.diff',
+                './cc refresh',
+                'rm -f profile_cc.sh',
+                './cc profile --no-bashrc',
+                ],
+            }
+        if name not in commands:
+            raise Exception('invalid test "%s". select from: %s'%(
+                style,commands.keys()))
+        for cmd in commands[name]:
+            #! bash function fails here with ascii error bash(cmd,announce=True)
+            #! issue: fix the bash function and replace the system call below
+            os.system(cmd)
 
 if __name__=='__main__':
     Interface()
