@@ -248,7 +248,10 @@ class Interface(Parser):
         etc_ownership = {}
         etc_sudo_owns = ['singularity.conf','capability.json','ecl.toml']
         for fn in etc_sudo_owns:
-            fn_abs = os.path.join(singularity_path,'etc','singularity',fn)
+            # standard installation uses /etc not /usr/etc
+            if singularity_path=='/usr': singularity_path_etc = '/etc'
+            else: singularity_path_etc = os.path.join(singularity_path,'etc')
+            fn_abs = os.path.join(singularity_path_etc,'singularity',fn)
             owned = pwd.getpwuid(os.stat(fn_abs).st_uid).pw_uid==0
             etc_ownership[fn_abs] = owned
             if not owned: print('warning root must own: %s'%fn_abs)
