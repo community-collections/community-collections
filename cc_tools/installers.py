@@ -137,6 +137,7 @@ tar xf go$VERSION.$OS-$ARCH.tar.gz --checkpoint=.100 && echo
 cd go
 export PATH=$(realpath .)/bin:$PATH
 export GOPATH=$(pwd)/go
+export CC=gcc #! intel causes failures here
 mkdir -p $GOPATH/src/github.com/sylabs
 cd $GOPATH/src/github.com/sylabs
 git clone https://github.com/sylabs/singularity.git
