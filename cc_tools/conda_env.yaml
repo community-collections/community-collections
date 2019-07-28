@@ -1,8 +1,9 @@
 dependencies:
   - libuuid
   - jq
-  - conda-forge::lua>=5.3.4
-  - conda-forge::luarocks
+  #! troubleshooting lfs now
+  #! - conda-forge::lua>=5.3.4
+  #! - conda-forge::luarocks
   - python>=3.6
   - pycurl
   - pyyaml

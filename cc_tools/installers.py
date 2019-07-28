@@ -277,7 +277,8 @@ class LmodManager(Handler):
             print('status installing lua because we '
                 'could not find one of: %s'%str(self.lua_reqs))
             needs_lua = True
-        if needs_lua:
+        #! forcing lua installation to handle lfs issues for now
+        if needs_lua or True:
             #! should we register that a custom lua was installed?
             print('status installing lua')
             result = shell_script(generic_install%dict(url=self.url_lua,
