@@ -74,9 +74,10 @@ def enforce_env():
     if not (
         os.path.dirname(sys.executable).split(os.path.sep)[-4:-1]==
         [miniconda_root,'envs',specs['envname']]):
+		#! some filesystems have an impartial clean which later causes this
         raise Exception(('The python executable (%s) is not located '
-            'in a miniconda which probably means you need to '
-            'kickstart with: ./cc bootstrap')%sys.executable)
+            'in a miniconda. This means the environment is misconfigured. '
+            'Consider cleaning this build and starting over.')%sys.executable)
     else: return os.path.sep.join([miniconda_root,'envs',specs['envname']])
 
 def shell_script(script,subshell=None,bin='bash',strict=True):
