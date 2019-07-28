@@ -1,9 +1,7 @@
 dependencies:
   - libuuid
   - jq
-  #! troubleshooting lfs now
-  #! - conda-forge::lua>=5.3.4
-  #! - conda-forge::luarocks
+  - conda-forge::lua>=5.3.4
   - python>=3.6
   - pycurl
   - pyyaml
@@ -11,6 +9,7 @@ dependencies:
   - openssl
   - intel::tcl
   - conda-forge::squashfs-tools
+  - sphinx
   - pip:
     - nvchecker
     - ipdb

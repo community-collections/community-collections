@@ -268,6 +268,10 @@ class LmodManager(Handler):
         from the source via sourceforge. Now that conda can supply lua without
         issue, this is unnecessary, however we still check for lfs and posix.
         To do this, we use the hardcoded lua path inside the conda environment.
+        To recap: on a machine with lua and no lfs, lua_bin might exist
+        but the lfs check will fail in which case we install a custom lua
+        from conda which will automatically have lfs. Either way, we register
+        the desired lua path for the post script in the needs_lua block.
         """
         lua_bin = os.path.join(specs['miniconda'],
             'envs',specs['envname'],'bin','lua')
@@ -277,9 +281,11 @@ class LmodManager(Handler):
             print('status installing lua because we '
                 'could not find one of: %s'%str(self.lua_reqs))
             needs_lua = True
-        #! forcing lua installation to handle lfs issues for now
-        if needs_lua or True:
-            #! should we register that a custom lua was installed?
+        if needs_lua:
+            # register the custom lua to avoid lfs errors in the post script
+            #   otherwise self.lua is the lua from the PATH. (see note above)
+            self.lua = os.path.join(specs['miniconda'],
+                'envs',specs['envname'],'bin','lua')
             print('status installing lua')
             result = shell_script(generic_install%dict(url=self.url_lua,
                 prefix=self.cache['prefix']),subshell=subshell)
@@ -329,6 +335,9 @@ class LmodManager(Handler):
         self.cache.get('errors',{}).pop('lmod',None)
         # manage the entire connection to lmod in the settings here
         self.cache['settings']['lmod'] = {'root':self.root}
+        # pass the custom lua location if necessary
+        if hasattr(self,'lua'):
+            self.cache['settings']['lmod']['lua'] = self.lua
         # lmod also includes updates to LMODRC
         # note that we use the keyed nature of profile_mods to overwrite
         #   any similar changes to the profile
@@ -341,7 +350,7 @@ class LmodManager(Handler):
             'post_add_luarc %s'%(lmodrc_fn)]
 
     def _detect_lmod(self):
-        """
+        """ 
         Check if Lmod is available.
         """
         if 'LMOD_CMD' in os.environ:
@@ -382,7 +391,7 @@ class LmodManager(Handler):
         self._register_error(name='lmod',error=
             'The lmod section needs user edits.')
 
-    def build(self,build):
+    def build(self,build,lua=None):
         """Request to build Lmod."""
 
         # enforce lmod at the end of the path
@@ -434,8 +443,10 @@ class LmodManager(Handler):
                 self.ERROR_NOTE+' '+
                 'See ./cc showcache for details on the installation error')
 
-    def detect(self,root):
+    def detect(self,root,lua=None):
         """Confirm that lmod exists in the path given by the user."""
+        # pass through custom lua path when detecting lmod
+        if lua: self.lua = lua
         #! standardize the error messages because some are repeated
         if root==self.CHECK_ROOT:
             lmod_root = self._detect_lmod()
@@ -448,7 +459,8 @@ class LmodManager(Handler):
                     self._report_ready()
                 else: 
                     self._register_error(name='lmod',
-                        error='Failed to find Lmod. Need build path from the user.')
+                        error='Failed to find Lmod. '
+                        'Need build path from the user.')
                     self.cache['settings']['lmod'] = {
                         'build':self.default_local_lmod,
                         'error':self.ERROR_NOTE+' '+self.ERROR_NEEDS_BUILD}
@@ -469,8 +481,8 @@ class LmodManager(Handler):
                     'error':self.ERROR_NOTE+' '+
                     self.ERROR_USER_ROOT_MISSING%root}
                 return
-            # the root is an absolte path to the lmod folder hence we do not
-            #   enforce the path here and later during report_ready lmod is added
+            # the root is an absolute path to the lmod folder hence we do not
+            #   enforce the path here and later we add lmod in _report_ready
             lmod_checked = self._check_lmod(path=self.root)
             if lmod_checked:
                 self._report_ready()
@@ -505,7 +517,11 @@ class SingularityManager(Handler):
     check_returncode = 0 
     user_namespace_check = 'cat /proc/sys/user/max_user_namespaces'
     default_build_conf = {'build':'./singularity','sandbox':False}
-    ERROR_USER_NAMESPACES = (('The sandbox flag in the Singularity settings (%s) is necessary when you lack sudo privileges and wish to install Singularity in sandbox mode. This also requires user namespaces. We failed to find user namespaces using "%s".')%(cc_user,user_namespace_check))
+    ERROR_USER_NAMESPACES = (('The sandbox flag in the Singularity settings '
+        '(%s) is necessary when you lack sudo privileges and wish to install '
+        'Singularity in sandbox mode. This also requires user namespaces. '
+        'We failed to find user namespaces using "%s".')%(
+            cc_user,user_namespace_check))
 
     def _detect_singularity(self):
         try: which_singularity = bash('which singularity',

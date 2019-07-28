@@ -315,10 +315,12 @@ class ModuleRequest(Handler):
         # the modulefile uses the relative path to the conda env for mksquashfs
         conda_env_relpath = os.path.join(os.path.relpath(specs['miniconda']),
             'envs',specs['envname'])
+        # use a custom lua path
+        lua_path = self.cache['settings']['lmod'].get('lua','lua')
         detail = dict(
             image_spot=self.image_spot,
             conda_env=conda_env_relpath,
-            extras=[])
+            lua_path=lua_path,extras=[])
 
         # prepare the source for the pull command
         if source=='docker':

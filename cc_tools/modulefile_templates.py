@@ -35,7 +35,7 @@ if mode()=="load" then
         local conda_bin = pathJoin(os.getenv("_COMCOL_ROOT"),conda_env,"bin")
         local prefix = "PATH=$PATH:" .. conda_bin .. " "
         -- after download we report on the size
-        local suffix = (" && PATH=$PATH:" .. conda_bin .. " lua " .. 
+        local suffix = (" && %%(lua_path)s " .. 
             pathJoin(os.getenv("_COMCOL_ROOT"),"cc_tools","post_download.lua") 
             .. " " .. images_dn .. " " .. target_fn .. " " .. myModuleName())
         local cmd = (prefix .. 
