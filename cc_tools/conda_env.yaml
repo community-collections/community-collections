@@ -13,3 +13,4 @@ dependencies:
   - pip:
     - nvchecker
     - ipdb
+    - recommonmark
