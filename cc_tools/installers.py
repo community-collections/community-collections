@@ -100,8 +100,10 @@ append() {
 #! this needs review
 append LD_LIBRARY_PATH $CONDA_PREFIX/lib
 append LD_RUN_PATH $CONDA_PREFIX/lib
+#! the printf above does not export
+export LD_LIBRARY_PATH
+export LD_RUN_PATH
 """
-
 
 # generic configure-make script
 generic_install = script_temp_build_env%dict(script="""
