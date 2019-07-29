@@ -44,9 +44,16 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = ['alabaster','bizstyle'][-1]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_logo = 'cc_logo.png'
+
+source_parsers = {
+    '.md': 'recommonmark.parser.CommonMarkParser',
+}
+source_suffix = ['.rst', '.md']
