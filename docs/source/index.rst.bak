@@ -1,0 +1,32 @@
+.. Community Collections documentation master file, created by
+   sphinx-quickstart on Sat Jul 27 21:34:50 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to Community Collections's documentation!
+=================================================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+Community Collections (CC) is an open-source high-performance computing (HPC) framework which provides a seamless interface between [Lmod](https://lmod.readthedocs.io/en/latest/) and [Singularity containers](https://sylabs.io/singularity/) so that users can download and deploy software in a Singularity container using the elegant module Lmod system. The CC tool is useful for administrators who wish to install or detect both Lmod and Singularity, customize a list of containers from public sources ([Docker Hub](), and [Singularity Hub](https://singularity-hub.org/), and [Syslabs Cloud Library](https://cloud.sylabs.io/library)).
+
+Installation
+------------
+
+``
+git clone http://github.com/community-collections/community-collections
+``
+
+.. reading 
+	https://singularityhub.github.io/singularityhub-docs/
+	# you have to log in
+	https://singularity-hub.org/accounts/login/?next=/search
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
