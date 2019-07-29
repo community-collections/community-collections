@@ -55,22 +55,12 @@ modulefile_sandbox = modulefile_basic_base%dict(
     singularity_pull='singularity build --sandbox')
 
 shell_connection_exec = """    set_shell_function('%(alias)s',
-        "singularity exec " .. target_fn .. ' %(target)s "$@"',
-        "singularity exec " .. target_fn .. '%(target)s "$*"')
+        "singularity exec %(flags)s" .. target_fn .. ' %(target)s "$@"',
+        "singularity exec %(flags)s" .. target_fn .. '%(target)s "$*"')
 """
 
 shell_connection_run = """    set_shell_function('%(alias)s',
-        "singularity run " .. target_fn,
-        "singularity run " .. target_fn)
-"""
-
-shell_connection_exec_sandbox = """    set_shell_function('%(alias)s',
-        "singularity exec --userns " .. target_fn .. ' %(target)s "$@"',
-        "singularity exec --userns " .. target_fn .. '%(target)s "$*"')
-"""
-
-shell_connection_run_sandbox = """    set_shell_function('%(alias)s',
-        "singularity run --userns " .. target_fn,
-        "singularity run --userns " .. target_fn)
+        "singularity run %(flags)s" .. target_fn,
+        "singularity run %(flags)s" .. target_fn)
 """
 

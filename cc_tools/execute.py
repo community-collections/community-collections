@@ -26,8 +26,6 @@ from .modulefile_templates import modulefile_basic
 from .modulefile_templates import modulefile_sandbox
 from .modulefile_templates import shell_connection_run
 from .modulefile_templates import shell_connection_exec
-from .modulefile_templates import shell_connection_run_sandbox
-from .modulefile_templates import shell_connection_exec_sandbox
 
 def register_error(self,name,error):
     """
@@ -299,14 +297,14 @@ class ModuleRequest(Handler):
         version='latest',shell=None,calls=None,repo=None,gpu=False):
         """Develop a singularity pull function."""
         use_sandbox = self.cache['settings']['singularity'].get('sandbox',False)
-        if use_sandbox:
-            shell_run = shell_connection_run_sandbox
-            shell_exec = shell_connection_exec_sandbox
-            text = modulefile_sandbox
-        else:
-            shell_run = shell_connection_run 
-            shell_exec = shell_connection_exec
-            text = modulefile_basic
+        flags = []
+        if use_sandbox: flags += ['userns']
+        if gpu: flags += ['nv']
+        shell_run = shell_connection_run
+        shell_exec = shell_connection_exec
+        if use_sandbox: text = modulefile_sandbox
+        else: text = modulefile_basic
+        flags = ' '.join(['--%s'%i for i in flags])+" "
 
         # prepare the spot for the image
         if not source: source = self.cache['module_settings']['source']
@@ -357,14 +355,14 @@ class ModuleRequest(Handler):
             # +++ by default map the module name to singularity run
             # +++ allow the shell parameter to use a different alias
             shell_calls += shell_run%dict(
-                alias=name if shell==None else shell)
+                alias=name if shell==None else shell,flags=flags)
         # +++ extra aliases
         elif calls:
             # a list of calls implies identical aliases otherwise use dict
             if isinstance(calls,list):
                 calls = dict([(i,i) for i in calls])
             for k,v in calls.items():
-                shell_calls += shell_exec%dict(alias=k,target=v)
+                shell_calls += shell_exec%dict(alias=k,target=v,flags=flags)
         detail['shell_connections'] = shell_calls
 
         # extra bells and whistles for the modulefile
