@@ -13,9 +13,11 @@ See our [paper](https://ssl.linklings.net/conferences/pearc/pearc19_program/view
 
 We are also assuming that the user's default shell is Bash.
 
-## Development notes
+## Quick Start
 
-### Testing
+See our longer docs here: https://community-collections.github.io/ Otherwise, below is a 'Quick Start'.
+
+### Testing as a user with admin privileges
 
 Use the following commands to test the code.
 
