@@ -1,4 +1,4 @@
-# Community Collections
+# Community Collections (CC)
 A Research Computing Framework for Software Sharing
 
 ## Motivation, Citation
@@ -7,11 +7,13 @@ See our [paper](https://ssl.linklings.net/conferences/pearc/pearc19_program/view
 
 ## Dependencies
 
-* python
+* Singularity (but CC can install for you)
+* Lmod (but CC can install for you)
+* python (but CC will install the one it wants)
 * wget
 * bzip2
 
-We are also assuming that the user's default shell is Bash.
+CC has only been tested on Bash shells currently.
 
 ## Quick Start
 
