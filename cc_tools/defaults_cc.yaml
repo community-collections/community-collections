@@ -34,3 +34,11 @@ whitelist:
     source: docker
     version: 1.12.3-gpu-py3
     gpu: true
+  bioconductor:
+    repo: waldronlab/bioconductor_release
+    source: shub
+    version: latest
+    shell: false
+    calls:
+      - R
+

@@ -262,7 +262,8 @@ class VersionCheck(Handler):
             prefer_no_suffix=prefer_no_suffix)
         return candidates
     def shub(self,shub_version):
-        return shub_version
+        #! placeholder. the default is "latest" for now
+        return [shub_version]
 
 class PrepModuleRequest(Handler):
     _internals = {'name':'_name','meta':'meta'}
@@ -337,11 +338,14 @@ class ModuleRequest(Handler):
                     '%s:%s, versions are: %s')%(
                     repo_name,version,str(versions)))
         elif source=='shub':
-            #! custom repo_name?
-            shub_repo_name = name
-            shub_version = VersionCheck(docker_version=version).solve
-            shub_call = '%s:%s'%(shub_repo_name,shub_version)
-            detail['source'] = 'docker://%s'%shub_call
+            versions = VersionCheck(shub_version=version).solve
+            repo_name = name if not repo else repo
+            detail['source'] = 'shub://%s:'%repo_name
+            if not versions:
+                #! better error message
+                raise Exception(('cannot satisfy singularity-hub version: '
+                    '%s:%s, versions are: %s')%(
+                    repo_name,version,str(versions)))
         elif source=='library':
             repo_name = name if not repo else repo
             detail['source'] = 'library://%s:'%repo_name

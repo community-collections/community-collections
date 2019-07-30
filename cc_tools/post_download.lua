@@ -79,5 +79,4 @@ end
 io.stderr:write("[CC] downloaded the image: " .. target_fn .. "\n")
 check_image_sizes()
 io.stderr:write("[CC] please be mindful of your quota\n")
-io.stderr:write("[CC] note that singularity may use a similar cache\n")
 io.stderr:write("[CC] the module is ready: " .. my_module_name .. "\n")
