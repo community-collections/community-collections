@@ -95,3 +95,7 @@ yum install -y wget which vim git make bzip2 cryptsetup
 Without `libtcl` or `squashfs-tools`, the code uses the `conda` environment to supply these. 
 
 Note that very recent testing shows that cryptsetup is now required for later versions of Singularity 3.
+
+## Documentation
+
+The documentation source is located in `docs/source` and can be compiled locally with `./cc docs`. Note that the administrators can update the [documentation site](https://community-collections.github.io) with the `./cc docs --push` command.
