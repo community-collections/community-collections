@@ -312,5 +312,49 @@ class Interface(Parser):
             #! issue: fix the bash function and replace the system call below
             os.system(cmd)
 
+    def docs(self,push=False):
+        """
+        Render sphinx docs.
+        """
+        # we call a custom make target which gets the path to miniconda sphinx
+        import shutil
+        shutil.rmtree('docs/build')
+        bash('make custom_html',cwd='docs')
+        upstream = (
+            'https://github.com/community-collections/'
+            'community-collections.github.io.git')
+        if push:
+            """
+            the community-collections repository hosts the docs source which
+            can be built and rendered locally from miniconda but also 
+            pushed to a separate repository (by the authors)
+            note that you may need to use: 
+                git config --global user.email
+                git config --global user.name
+            """
+            # explicit git from conda because containers only have git<2
+            git_path = os.path.join(os.getcwd(),
+                'miniconda','envs',specs['envname'],'bin','git')
+            detail = dict(git=git_path,upstream=upstream)
+            where = 'docs/build/html'
+            commands = [
+                '%(git)s init || echo "already initialized"',
+                '%(git)s remote add origin '
+                '%(upstream)s || echo "origin exists"',
+                '%(git)s fetch origin master',
+                '%(git)s checkout -b new_changes || git checkout new_changes',
+                '%(git)s add .',
+                '%(git)s commit -m "refreshing docs on '
+                    '$(date +%%Y.%%m.%%d.%%H%%M)"',
+                '%(git)s checkout master',
+                #! note that this require a newer git
+                '%(git)s merge -X theirs --allow-unrelated-histories '
+                    '-m "refreshing docs" new_changes',
+                '%(git)s commit -m "refreshing docs" || '
+                    'echo "committed already" # nothing to commit',
+                '%(git)s push',]
+            for cmd in commands:
+                bash(cmd%detail,cwd=where,announce=True)
+
 if __name__=='__main__':
     Interface()

@@ -8,3 +8,4 @@ miniconda
 singularity
 modulefiles
 !modulefiles/cc
+docs/build

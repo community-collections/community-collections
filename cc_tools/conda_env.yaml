@@ -10,6 +10,8 @@ dependencies:
   - intel::tcl
   - conda-forge::squashfs-tools
   - sphinx
+  - git
   - pip:
     - nvchecker
     - ipdb
+    - recommonmark
