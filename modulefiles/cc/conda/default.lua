@@ -11,16 +11,15 @@ help([[ Loads the Miniconda environment supporting Community-Collections. ]])
 whatis("Sets the environment to use the Community-Collections Miniconda.")
 local conda_exe = os.getenv("CONDA_EXE")
 local myShell = myShellName()
--- rpb removes two prepends of bin and condabin to prevent lingering conda
--- if CONDA_EXE is unset then trigger source of conda.{sh,csh}
-if (conda_exe == nil or conda_exe == "") then
+-- the or operator is essential to prevent unload on lmod reload
+if (conda_exe == nil or conda_exe == "") or mode()=="load" then
   if (myShell == "bash") then
       cmd = "source " .. root .. "/etc/profile.d/conda.sh"
   else
       cmd = "source " .. root .. "/etc/profile.d/conda.csh"
   end
   execute{cmd=cmd, modeA = {"load"}}
-else
+elseif mode()=="unload" then
   if (myShell == "bash") then
       cmd = "conda deactivate; " ..
             "unset ANACONDA3ROOT; unset PYTHONROOT; unset CONDA_EXE; " ..

@@ -1,7 +1,7 @@
 local conda_prefix = os.getenv("CONDA_PREFIX")
 if mode()=="load" then setenv("_CC_ENV_LOADED",1) 
 else setenv("_CC_ENV_LOADED",0) end
-if (conda_prefix == nil or conda_prefix == "") then
+if (conda_prefix == nil or conda_prefix == "") or mode()=="load" then
   -- only load cc/conda if it is not loaded 
   -- otherwise it unloads itself due to CONDA_EXE check
   if (not isloaded("cc/conda")) then 
