@@ -174,7 +174,7 @@ class Parser:
             subcommand_names = ([i for i in subcommand_names if i in parser_order]+
                 [i for i in subcommand_names if i not in parser_order])
         parser = argparse.ArgumentParser(
-            description='Manager.')
+            description='Community Collections Manager.')
         subparsers = parser.add_subparsers(title='subcommands',
             description='Valid subcommands:',
             help='Use the help flag (-h) for more details on each subcommand.')
