@@ -7,8 +7,9 @@ containers](https://sylabs.io/singularity/) so that users can download and
 deploy software in a Singularity container using the elegant module Lmod
 system. The CC tool is useful for administrators who wish to install or detect
 both Lmod and Singularity, customize a list of containers from public sources
-([Docker Hub](), and [Singularity Hub](https://singularity-hub.org/), and
-[Sylabs Cloud Library](https://cloud.sylabs.io/library)).
+([Docker Hub](https://hub.docker.com/)), [Singularity
+Hub](https://singularity-hub.org/), and [Sylabs Cloud
+Library](https://cloud.sylabs.io/library)).
 
 Requirements
 ------------
