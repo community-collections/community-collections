@@ -3,7 +3,7 @@ propT = {
    cc_status = {
       validT = { ready = 1, available = 1 },
       displayT = {
-         ready = { short = "(r)",  color = "green", doc = "Downloaded  and ready to use (community collections)."},
+         ready = { short = "(r)",  color = "green", doc = "Ready to use (community collections)."},
          available = { short = "(a)",  color = "cyan", doc = "Available for download (community collections)."},
      },
    },
