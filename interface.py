@@ -318,7 +318,9 @@ class Interface(Parser):
         """
         # we call a custom make target which gets the path to miniconda sphinx
         import shutil
-        shutil.rmtree('docs/build')
+        builddir = 'docs/build'
+        if os.path.exists(builddir) and os.path.isdir(builddir):
+            shutil.rmtree(builddir)
         bash('make custom_html',cwd='docs')
         upstream = (
             'https://github.com/community-collections/'
