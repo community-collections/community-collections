@@ -1,9 +1,13 @@
 # Community Collections (CC)
 A Research Computing Framework for Software Sharing
 
-## Motivation, Citation
+## Motivation and Citation
 
-See our [paper](https://ssl.linklings.net/conferences/pearc/pearc19_program/views/includes/files/pap120s3-file1.pdf).
+A recent PDF should be available here [paper](https://ssl.linklings.net/conferences/pearc/pearc19_program/views/includes/files/pap120s3-file1.pdf).
+
+Citing our work increases our visibility to our scientific research community!  Please include the following citation in related efforts:
+
+[K. Manalo, L. Baber, R. Bradley, Z. You, N. Zhang. "Community Collections: A Framework for Openly Sharing Software Stacks Across Research Computing Centers Using Singularity and Lmod"". PEARC19, July 28 - August 1, 2019, Chicago, IL, USA. DOI: 10.1145/3332186.3332199](https://doi.org/10.1145/3332186.3332199)
 
 ## Requirements
 
