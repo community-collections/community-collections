@@ -1,6 +1,14 @@
 # Community Collections
 
-Community Collections (CC) is an open-source high-performance computing (HPC) framework which provides a seamless interface between [Lmod](https://lmod.readthedocs.io/en/latest/) and [Singularity containers](https://sylabs.io/singularity/) so that users can download and deploy software in a Singularity container using the elegant module Lmod system. The CC tool is useful for administrators who wish to install or detect both Lmod and Singularity, customize a list of containers from public sources ([Docker Hub](), and [Singularity Hub](https://singularity-hub.org/), and [Syslabs Cloud Library](https://cloud.sylabs.io/library)).
+Community Collections (CC) is an open-source high-performance computing (HPC)
+framework which provides a seamless interface between
+[Lmod](https://lmod.readthedocs.io/en/latest/) and [Singularity
+containers](https://sylabs.io/singularity/) so that users can download and
+deploy software in a Singularity container using the elegant module Lmod
+system. The CC tool is useful for administrators who wish to install or detect
+both Lmod and Singularity, customize a list of containers from public sources
+([Docker Hub](), and [Singularity Hub](https://singularity-hub.org/), and
+[Sylabs Cloud Library](https://cloud.sylabs.io/library)).
 
 Requirements
 ------------
@@ -28,14 +36,24 @@ RUN yum install -y bzip2
 RUN yum install -y cryptsetup
 ~~~
 
-When you install community collections on the minimal system described above, it will use Miniconda to providing supporting software such as `tcl` and `squashfs-tools` and also compile `Singularity` and `Lmod` from their latest available source distributions.
+When you install community collections on the minimal system described above,
+it will use Miniconda to providing supporting software such as `tcl` and
+`squashfs-tools` and also compile `Singularity` and `Lmod` from their latest
+available source distributions.
 
-Alternately, it can be deployed on a standard HPC resource. The code is designed to automatically detect preexisting Lmod and Singularity installations. The most important feature of Community Collections is its ability to *add container-driven modules to Lmod*.
+Alternately, it can be deployed on a standard HPC resource. The code is
+designed to automatically detect preexisting Lmod and Singularity
+installations. The most important feature of Community Collections is its
+ability to *add container-driven modules to Lmod*.
 
 Installation
 ------------
 
-You can install a copy of Community Collections by cloning the source code and running a single "refresh" command. This command will first install a [Miniconda](https://docs.conda.io/en/latest/miniconda.html) environment to provide supporting software (more on this later), and then either detect or install Singularity and Lmod.
+You can install a copy of Community Collections by cloning the source code and
+running a single "refresh" command. This command will first install a
+[Miniconda](https://docs.conda.io/en/latest/miniconda.html) environment to
+provide supporting software (more on this later), and then either detect or
+install Singularity and Lmod.
 
 ~~~
 git clone http://github.com/community-collections/community-collections
@@ -155,9 +173,14 @@ whitelist:
     version: 1.12.3-gpu-py3
 ~~~
 
-If you remove the `error` entries in the `lmod` and `singularity` sections, the settings file will instruct the program to build Lmod and Singularity at the locations given by the `build` keys. Run `./cc refresh` to start building the code.
+If you remove the `error` entries in the `lmod` and `singularity` sections, the
+settings file will instruct the program to build Lmod and Singularity at the
+locations given by the `build` keys. Run `./cc refresh` to start building the
+code.
 
-If your system supplies `lua` with `lfs`, the Lua filesystem package, them Lmod will use that, otherwise it compiles its own copy. Miniconda also supplies `tcl` with headers since they are absent on our minimal system.
+If your system supplies `lua` with `lfs`, the Lua filesystem package, them Lmod
+will use that, otherwise it compiles its own copy. Miniconda also supplies
+`tcl` with headers since they are absent on our minimal system.
 
 When the installation is complete, the code will report that it is ready.
 
@@ -172,7 +195,9 @@ When the installation is complete, the code will report that it is ready.
 [CC] [STATUS] cache is unchanged
 ~~~
 
-You can ignore the cache for now. The next step is to use root permissions to enable singularity. First you can check the Singularity installation with the `capable` command.
+You can ignore the cache for now. The next step is to use root permissions to
+enable singularity. First you can check the Singularity installation with the
+`capable` command.
 
 ~~~
 $ ./cc capable
@@ -193,7 +218,9 @@ chmod 4755 ./singularity/libexec/singularity/bin/starter-suid
 [CC] [STATUS] cache is unchanged
 ~~~
 
-You can run these commands yourself, or use the following sudo command. Either way, they will assign root ownership and the correct suid bit to the necessary Singularity components.
+You can run these commands yourself, or use the following sudo command. Either
+way, they will assign root ownership and the correct suid bit to the necessary
+Singularity components.
 
 ~~~
 sudo ./cc enable
@@ -223,7 +250,8 @@ chmod 4755 ./singularity/libexec/singularity/bin/starter-suid
 
 Beware that this will fail on disks with `nosuid`.
 
-Using the code requires only that you generate short profile script.
+Using the code requires only that you generate a short profile script, which
+you can optionally append to your existing `.bashrc`.
 
 ~~~
 $ ./cc profile
