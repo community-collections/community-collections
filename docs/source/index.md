@@ -6,10 +6,10 @@ framework which provides a seamless interface between
 containers](https://sylabs.io/singularity/) so that users can download and
 deploy software in a Singularity container using the elegant module Lmod
 system. The CC tool is useful for administrators who wish to install or detect
-both Lmod and Singularity, customize a list of containers from public sources
-([Docker Hub](https://hub.docker.com/)), [Singularity
+both Lmod and Singularity, customize a list of containers from public sources such as
+[Docker Hub](https://hub.docker.com/), [Singularity
 Hub](https://singularity-hub.org/), and [Sylabs Cloud
-Library](https://cloud.sylabs.io/library)).
+Library](https://cloud.sylabs.io/library).
 
 Requirements
 ------------
@@ -438,10 +438,41 @@ whitelist:
 
 **Image locations** Note that we automatically save the images to `~/.cc_yaml` for each user, however this can be configured with the `~/.cc_images` command.
 
+Whitelist
+---------
+
+CC starts you off with a default whitelist, we repeat that for emphasis:
+
+~~~
+whitelist:
+  R:
+    calls:
+    - R
+    - Rscript
+    repo: r-base
+    source: docker
+    version: '>=3.6'
+  julia:
+    source: docker
+    version: '>=1.0.1'
+  lolcow:
+    repo: leconte/examples/lolcow
+    source: library
+    version: latest
+  tensorflow:
+    calls:
+    - python
+    gpu: true
+    repo: tensorflow/tensorflow
+    shell: false
+    source: docker
+    version: 1.12.3-gpu-py3
+~~~
+
 Blacklist
 ---------
 
-Adding the following to your `cc.yaml` will exclude certain pacakges from the moduletree.
+Adding the following to your `cc.yaml` will exclude certain pacakges from the moduletree:
 
 ~~~
 blacklist:
