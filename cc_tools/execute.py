@@ -414,12 +414,13 @@ class Execute(Handler):
         #! need a clean operation
         if blacklist and not isinstance(blacklist,list):
             raise Exception('the blacklist must be a list: %s'%str(blacklist))
+            whitelist = [x for x in whitelist if x not in blacklist]
+
         # separate the whitelist from the software settings
         self.whitelist = whitelist
+
         # build modulefiles for everything on the whitelist
         for key,val in self.whitelist.items():
-            # ignore the blacklist
-            if key in blacklist: continue
             # preprocess the items
             prepped = PrepModuleRequest(name=key,detail=val).solve
             request = Convey(cache=self.state)(ModuleRequest)(**prepped).solve
