@@ -5,13 +5,16 @@ A Research Computing Framework for Software Sharing
 
 See our [paper](https://ssl.linklings.net/conferences/pearc/pearc19_program/views/includes/files/pap120s3-file1.pdf).
 
-## Dependencies
+## Requirements
 
-* Singularity (but CC can install for you)
-* Lmod (but CC can install for you)
-* python (but CC will install the one it wants)
-* wget
-* bzip2
+* Linux
+* A root-installed Singularity or else we will install one for you, and give you the opportunity to enable it with root
+* On RHEL7 systems, “Development Tools” including the gcc compiler
+* `bzip2` for obvious reasons
+* `git` to get the code
+* `wget` to get necessary components
+* The cryptsetup package for installing recent versions of Singularity
+* A kernel with user namespaces if you lack root and wish to use Singularity sandbox containers instead of image files
 
 CC has only been tested on Bash shells currently.
 
@@ -66,9 +69,11 @@ ml R          # gets a copy of R from r-base
 
 Version checking and versionless modules are still under development.
 
-### Testing in a container
+### Testing in a Docker Container
 
-The code is currently tested in a docker container with a very minimal set of requirements:
+This section describes a Docker environment which would be sufficient for
+supporting CC.  The code is currently tested in a Docker container with a very
+minimal set of requirements:
 
 ```
 FROM centos:centos7
@@ -92,10 +97,15 @@ yum groupinstall -y 'Development Tools'
 yum install -y wget which vim git make bzip2 cryptsetup
 ```
 
-Without `libtcl` or `squashfs-tools`, the code uses the `conda` environment to supply these. 
+Without `libtcl` or `squashfs-tools`, the code uses the `conda` environment to
+supply these. 
 
-Note that very recent testing shows that cryptsetup is now required for later versions of Singularity 3.
+Note that very recent testing shows that cryptsetup is now required for later
+versions of Singularity 3.
 
 ## Documentation
 
-The documentation source is located in `docs/source` and can be compiled locally with `./cc docs`. Note that the administrators can update the [documentation site](https://community-collections.github.io) with the `./cc docs --push` command.
+The documentation source is located in `docs/source` and can be compiled
+locally with `./cc docs`. Note that the administrators can update the
+[documentation site](https://community-collections.github.io) with the `./cc
+docs --push` command.
