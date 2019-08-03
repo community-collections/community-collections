@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 """
-Prototype for the Python interface to Community Collections (CC).
+Python interface to Community Collections (CC).
 Currently offering this to the user via: `alias cc="python $(pwd)/cc"`.
 """
 
@@ -211,7 +211,7 @@ class Interface(Parser):
         """
         self.cache._debug = False
         from cc_tools.stdtools import treeview
-        treeview(self.cache,style='pprint')
+        treeview(self.cache,style='json')
 
     def enable(self):
         """

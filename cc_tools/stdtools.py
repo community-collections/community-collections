@@ -3,7 +3,7 @@
 # Python 2/3 compatabilty and color printer
 from __future__ import print_function
 from __future__ import unicode_literals
-import os,sys,re
+import os,sys,re,json
 
 str_types = (str,unicode) if sys.version_info<(3,0) else (str,)
 basestring = string_types = str_types = (str,unicode) if sys.version_info<(3,0) else (str,)
@@ -358,7 +358,7 @@ def treeview(data,style='unicode'):
 		# swap back
 		if do_swap_stderr: sys.stderr = hold_stderr
 		if do_swap_stdout: sys.stdout = hold_stdout
-	elif style=='json': return print(json.dumps(data))
+	elif style=='json': return print(json.dumps(data, indent=4, sort_keys=True))
 	elif style=='pprint': 
 		import pprint
 		return pprint.pprint(data)
