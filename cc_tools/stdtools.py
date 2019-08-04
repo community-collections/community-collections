@@ -12,7 +12,6 @@ import io
 import time
 import queue
 import threading
-import reader
 import inspect  # for Introspection
 import traceback  # for Tracer
 

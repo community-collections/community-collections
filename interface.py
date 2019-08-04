@@ -384,18 +384,20 @@ class Interface(Parser):
         pyfiles = []
         for root, dns, fns in os.walk('cc_tools'):
             for fn in fns:
-                if re.match('.+\.py$',fn):
+                if re.match(r'.+\.py$', fn):
                     pyfiles.append('cc_tools/' + fn)
-        #pyfiles.append('interface.py')
+        pyfiles.append('interface.py')
 
         # use cc anaconda flake8
         flake8_path = os.path.join(os.getcwd(),
-                                'miniconda', 'envs', specs['envname'],
-                                'bin', 'flake8')
+                                   'miniconda', 'envs', specs['envname'],
+                                   'bin', 'flake8')
+
         for pyfile_path in pyfiles:
-            detail = dict(pyfile=pyfile_path, flake8=flake8_path) 
+            detail = dict(pyfile=pyfile_path, flake8=flake8_path)
             print('%(flake8)s %(pyfile)s' % detail)
-            bash('%(flake8)s %(pyfile)s' % detail, announce=True, exit_error=False)
+            bash('%(flake8)s %(pyfile)s' % detail, 
+                 announce=True, exit_error=False)
 
 
 if __name__ == '__main__':
