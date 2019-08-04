@@ -89,7 +89,7 @@ def command_check(command,cwd=None,quiet=False):
         return -1
 
 def bash(command,log=None,cwd=None,inpipe=None,scroll=True,tag=None,
-	announce=False,local=False,scroll_log=True,quiet=False):
+	announce=False,local=False,scroll_log=True,quiet=False,exit_error=True):
 	"""
 	Run a bash command.
 	Development note: tee functionality would be useful however you cannot use pipes with subprocess here.
@@ -127,8 +127,10 @@ def bash(command,log=None,cwd=None,inpipe=None,scroll=True,tag=None,
 					sys.stdout.write((tag if tag else '')+line.decode('utf-8'))
 					sys.stdout.flush()
 				proc.wait()
-				if proc.returncode:
+				if proc.returncode and exit_error:
 					raise Exception('see above for error. bash return code %d'%proc.returncode)
+				if not exit_error:
+					stdout,stderr = proc.communicate()
 			# no scroll waits for output and then checks it below
 			else: stdout,stderr = proc.communicate()
 	# alternative scroll method via https://stackoverflow.com/questions/18421757
@@ -203,7 +205,7 @@ def bash(command,log=None,cwd=None,inpipe=None,scroll=True,tag=None,
 	# note that putting wait here means that you get a log file with the error 
 	#   along a standard traceback to the location of the bash call
 	proc.wait()
-	if proc.returncode: 
+	if proc.returncode and exit_error: 
 		if log: raise Exception('bash error, see %s'%log)
 		else: 
 			if stdout and not quiet:
