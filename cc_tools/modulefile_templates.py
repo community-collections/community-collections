@@ -35,11 +35,11 @@ if mode()=="load" then
         local conda_bin = pathJoin(os.getenv("_COMCOL_ROOT"),conda_env,"bin")
         local prefix = "PATH=$PATH:" .. conda_bin .. " "
         -- after download we report on the size
-        local suffix = (" && %%(lua_path)s " .. 
-            pathJoin(os.getenv("_COMCOL_ROOT"),"cc_tools","post_download.lua") 
+        local suffix = (" && %%(lua_path)s " ..
+            pathJoin(os.getenv("_COMCOL_ROOT"),"cc_tools","post_download.lua")
             .. " " .. images_dn .. " " .. target_fn .. " " .. myModuleName())
-        local cmd = (prefix .. 
-            "%(singularity_pull)s " .. target_fn .. " " .. 
+        local cmd = (prefix ..
+            "%(singularity_pull)s " .. target_fn .. " " ..
             source .. suffix)
         execute{cmd=cmd,modeA={"load"}}
     end
@@ -48,10 +48,10 @@ if mode()=="load" then
 end
 """
 
-modulefile_basic = modulefile_basic_base%dict(
+modulefile_basic = modulefile_basic_base % dict(
     singularity_pull='singularity pull')
 
-modulefile_sandbox = modulefile_basic_base%dict(
+modulefile_sandbox = modulefile_basic_base % dict(
     singularity_pull='singularity build --sandbox')
 
 shell_connection_exec = """    set_shell_function('%(alias)s',
@@ -63,4 +63,3 @@ shell_connection_run = """    set_shell_function('%(alias)s',
         "singularity run %(flags)s" .. target_fn,
         "singularity run %(flags)s" .. target_fn)
 """
-
