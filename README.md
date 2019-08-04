@@ -5,7 +5,8 @@ A Research Computing Framework for Software Sharing
 
 A recent PDF should be available [here](https://ssl.linklings.net/conferences/pearc/pearc19_program/views/includes/files/pap120s3-file1.pdf).
 
-Citing our work increases our visibility to our scientific research community!  Please include the following citation in related efforts:
+Citing our work increases our visibility to our scientific research community!  
+Please include the following citation in related efforts:
 
 [K. Manalo, L. Baber, R. Bradley, Z. You, N. Zhang. "Community Collections: A Framework for Openly Sharing Software Stacks Across Research Computing Centers Using Singularity and Lmod". PEARC19, July 28 - August 1, 2019, Chicago, IL, USA. DOI: 10.1145/3332186.3332199](https://doi.org/10.1145/3332186.3332199)
 
@@ -37,8 +38,6 @@ cd community-collections
 
 # optional: clean ups if you intend to start over
 ./cc clean # only if you are developing and want to delete everything
-# erase some stray module files because we do not clean them up
-rm -rf ./modulefiles/julia ./modulefiles/lolcow ./modulefiles/R ./modulefiles/tensorflow
 # clear your own cache if developing
 rm -rf ~/.singularity ~/.cc_images 
 
@@ -73,7 +72,7 @@ ml R          # gets a copy of R from r-base
 
 Version checking and versionless modules are still under development.
 
-### Testing in a Docker Container
+### Testing in a docker container
 
 This section describes a Docker environment which would be sufficient for
 supporting CC.  The code is currently tested in a Docker container with a very
