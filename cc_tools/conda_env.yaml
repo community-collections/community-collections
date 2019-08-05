@@ -11,6 +11,7 @@ dependencies:
   - conda-forge::squashfs-tools
   - sphinx
   - git
+  - flake8
   - pip:
     - nvchecker
     - ipdb
