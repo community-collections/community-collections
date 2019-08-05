@@ -399,6 +399,8 @@ class Interface(Parser):
             bash('%(flake8)s %(pyfile)s' % detail,
                  announce=True, exit_error=False)
 
+        return pyfiles
+
 
 if __name__ == '__main__':
     Interface()
