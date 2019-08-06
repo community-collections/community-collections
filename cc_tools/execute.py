@@ -9,6 +9,7 @@ Execution logic for CC.
 Handles the transformation of settings files (the YAML file) to actions.
 """
 
+from distutils.version import LooseVersion
 import os
 import sys  # noqa
 import re
@@ -210,22 +211,14 @@ class UseCase(Handler):
 class VersionCheck(Handler):
     _internals = {'name': '_name', 'meta': 'meta'}
 
-    def _version_number_compare(self, v1, v2):
-        # via https://stackoverflow.com/questions/1714027
-        def normalize(v):
-            return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
-        # cmp is gone in python 3
-        cmp = lambda a, b: (a > b) - (a < b)
-        return cmp(normalize(v1), normalize(v2))
-
     def _version_check(self, version_this, op, version):
         return not (
             (op == '=' and not
-                self._version_number_compare(version_this, version) == 0) or
+             LooseVersion(version_this) == LooseVersion(version)) or
             (op == '>' and not
-                self._version_number_compare(version_this, version) > 0) or
+             LooseVersion(version_this) > LooseVersion(version)) or
             (op == '>=' and not
-                self._version_number_compare(version_this, version) >= 0))
+             LooseVersion(version_this) >= LooseVersion(version)))
 
     def _version_syntax(self, req):
         regex_version = r'^(=|==|>=|>)?([\d+\.]+)(.*?)$'
@@ -236,13 +229,22 @@ class VersionCheck(Handler):
         return op, version, suffix
 
     def _extract_number(self, result):
+        if 'images' in result:
+            # NGC result
+            field = 'tag'
+            list = result['images']
+        else:
+            # Docker API v1
+            field = 'name'
+            list = result
+
         items = []
-        for i in result:
-            match = re.match(r'^([\d\.]+)(.*?)$', i['name'])
+        for i in list:
+            match = re.match(r'^([\d\.]+)(.*?)$', i[field])
             if match:
                 reduced = match.groups()
             else:
-                reduced = (i['name'],)
+                reduced = (i[field],)
             items.append(reduced)
         return items
 
@@ -280,7 +282,14 @@ class VersionCheck(Handler):
         import urllib
         import json
         import urllib.request
-        url = "https://registry.hub.docker.com/v1/repositories/%s/tags" % name
+
+        if name.startswith('nvcr.io'):
+            # NGC
+            url = "https://api.ngc.nvidia.com/v2/repos/%s/images" % name.replace('nvcr.io/', '', 1)
+            prefer_no_suffix = False
+        else:
+            # Docker Hub
+            url = "https://registry.hub.docker.com/v1/repositories/%s/tags" % name
         try:
             response = urllib.request.urlopen(url)
         except:  # noqa
