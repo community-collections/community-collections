@@ -283,7 +283,7 @@ class VersionCheck(Handler):
         import json
         import urllib.request
 
-        if names.startswith('nvcr.io'):
+        if name.startswith('nvcr.io'):
             # NGC
             url = "https://api.ngc.nvidia.com/v2/repos/%s/images" % name.replace('nvcr.io/', '', 1)
             prefer_no_suffix = False
