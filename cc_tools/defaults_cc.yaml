@@ -50,6 +50,8 @@ whitelist:
     gpu: true
     calls:
       - namd2
+      - psfgen
+      - charmrun
   pytorch:
     # NGC
     calls:
