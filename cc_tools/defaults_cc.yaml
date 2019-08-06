@@ -41,4 +41,22 @@ whitelist:
     shell: false
     calls:
       - R
+  namd:
+    # NGC
+    repo: nvcr.io/hpc/namd
+    shell: false
+    source: docker
+    version: 2.13-singlenode
+    gpu: true
+    calls:
+      - namd2
+  pytorch:
+    # NGC
+    calls:
+      - python
+    repo: nvcr.io/nvidia/pytorch
+    shell: false
+    source: docker
+    version: '>=19.05'
+    gpu: true
 
