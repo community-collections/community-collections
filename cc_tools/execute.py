@@ -201,7 +201,7 @@ class UseCase(Handler):
 
         # optional information
         # connection to spack is under consideration
-        if spack and spack_inst != False:
+        if spack and spack_inst is not False:
             self.cache['case']['spack'] = spack_inst.abspath
         self._shutdown()
         # pass the arguments through
@@ -250,7 +250,7 @@ class VersionCheck(Handler):
 
     def _check_version(self, splits, target, prefer_no_suffix=True):
         op, version, suffix = self._version_syntax(target)
-        if op == None:
+        if op is None:
             op = "=="
         candidates = []
         for split in splits:
@@ -285,11 +285,13 @@ class VersionCheck(Handler):
 
         if name.startswith('nvcr.io'):
             # NGC
-            url = "https://api.ngc.nvidia.com/v2/repos/%s/images" % name.replace('nvcr.io/', '', 1)
+            url = "https://api.ngc.nvidia.com/v2/repos/%s/images" % \
+                name.replace('nvcr.io/', '', 1)
             prefer_no_suffix = False
         else:
             # Docker Hub
-            url = "https://registry.hub.docker.com/v1/repositories/%s/tags" % name
+            url = "https://registry.hub.docker.com/v1/repositories/%s/tags" % \
+                name
         try:
             response = urllib.request.urlopen(url)
         except:  # noqa
@@ -414,11 +416,12 @@ class ModuleRequest(Handler):
 
         # prepare shell functions
         shell_calls = ''
-        if ((calls and name not in calls) or not calls) and shell != False:
+        if ((calls and name not in calls) or not calls) and \
+                shell is not False:
             # +++ by default map the module name to singularity run
             # +++ allow the shell parameter to use a different alias
             shell_calls += shell_run % dict(
-                alias=name if shell == None else shell, flags=flags)
+                alias=name if shell is None else shell, flags=flags)
         # +++ extra aliases
         elif calls:
             # a list of calls implies identical aliases otherwise use dict
@@ -447,7 +450,7 @@ class ModuleRequest(Handler):
             modulefile_name = tag
             # +++ assume sif file
             # +++ formulate the module file name to resemble the lmod name
-            name_image_base = '%s-%s' % (name, tag)
+            # name_image_base = '%s-%s' % (name, tag)
             # the name is coded in the modulefile after implementing symlinks
             #   detail['target'] = '%s.sif'%name_image_base
             """ the secret sauce: link to the base lua file which auto-detects
@@ -484,5 +487,5 @@ class Execute(Handler):
         for key, val in self.whitelist.items():
             # preprocess the items
             prepped = PrepModuleRequest(name=key, detail=val).solve
-            request = Convey(cache=self.state)(ModuleRequest)(**prepped).solve
+            Convey(cache=self.state)(ModuleRequest)(**prepped).solve
         print('status community-collections is ready!')
