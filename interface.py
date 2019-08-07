@@ -395,7 +395,6 @@ class Interface(Parser):
 
         for pyfile_path in pyfiles:
             detail = dict(pyfile=pyfile_path, flake8=flake8_path)
-            print('%(flake8)s %(pyfile)s' % detail)
             bash('%(flake8)s %(pyfile)s' % detail,
                  announce=True, exit_error=False)
 
