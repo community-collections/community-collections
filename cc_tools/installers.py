@@ -371,9 +371,12 @@ class LmodManager(Handler):
                             'cc_tools', 'lmodrc.lua'))
         if 'profile_mods' not in self.cache:
             self.cache['profile_mods'] = {}
-        self.cache['profile_mods']['lmod_property'] = [
-            bash_env_append % dict(name='post_add_luarc', var='LMOD_RC'),
-            'post_add_luarc %s' % (lmodrc_fn)]
+
+        # do not run on previously existing profile
+        if 'profile' not in self.cache['settings']:
+            self.cache['profile_mods']['lmod_property'] = [
+                bash_env_append % dict(name='post_add_luarc', var='LMOD_RC'),
+                'post_add_luarc %s' % (lmodrc_fn)]
 
     def _detect_lmod(self):
         """
