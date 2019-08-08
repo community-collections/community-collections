@@ -13,6 +13,8 @@ from distutils.version import LooseVersion
 import os
 import sys  # noqa
 import re
+import glob
+import shutil
 from . import stdtools  # noqa
 from .stdtools import Handler
 from .stdtools import tracebacker
@@ -480,16 +482,27 @@ class Execute(Handler):
     The main execution loop. "Runs" the user setting file.
     Always decorate via: `Execute = Convey(state=state)(Execute)`
     """
+    def _clean_modulefiles(self):
+        """
+        Remove all modulefiles except those provided by cc.
+        """
+        for dn in glob.glob('modulefiles/*'):
+            dn_abs = os.path.realpath(dn)
+            dn_safe = [os.path.realpath('modulefiles/cc')]
+            if dn_abs not in dn_safe:
+                shutil.rmtree(dn)
+
     def whitelist(self, whitelist, images, blacklist=None):
         """
         Handle the whitelist scenario.
         """
-        # need a clean operation
+        # clean existing modulefiles in case we are blacklisting
+        self._clean_modulefiles()
         if blacklist and not isinstance(blacklist, list):
             raise Exception('the blacklist must be a list: %s' %
                             str(blacklist))
-            whitelist = [x for x in whitelist if x not in blacklist]
-
+        whitelist = dict([(i, j) for i, j in whitelist.items() 
+                         if i not in blacklist])
         # separate the whitelist from the software settings
         self.whitelist = whitelist
 
