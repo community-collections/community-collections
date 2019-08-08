@@ -502,7 +502,7 @@ class Execute(Handler):
             raise Exception('the blacklist must be a list: %s' %
                             str(blacklist))
         if blacklist:
-            whitelist = dict([(i, j) for i, j in whitelist.items() 
+            whitelist = dict([(i, j) for i, j in whitelist.items()
                              if i not in blacklist])
         # separate the whitelist from the software settings
         self.whitelist = whitelist
