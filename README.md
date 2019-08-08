@@ -3,15 +3,6 @@ A Research Computing Framework for Software Sharing
 
 CC allows users to keep up with the latest software on HPC systems and is also a reflection of the community's software interests in sharing common containerized software.  Powered by Singularity and Lmod on Linux systems.
 
-## Motivation and Citation
-
-A recent PDF should be available [here](https://ssl.linklings.net/conferences/pearc/pearc19_program/views/includes/files/pap120s3-file1.pdf).
-
-Citing our work increases our visibility to our scientific research community!  
-Please include the following citation in related efforts:
-
-[K. Manalo, L. Baber, R. Bradley, Z. You, N. Zhang. "Community Collections: A Framework for Openly Sharing Software Stacks Across Research Computing Centers Using Singularity and Lmod". PEARC19, July 28 - August 1, 2019, Chicago, IL, USA. DOI: 10.1145/3332186.3332199](https://doi.org/10.1145/3332186.3332199)
-
 ## Requirements
 
 * Linux
@@ -114,3 +105,12 @@ The documentation source is located in `docs/source` and can be compiled
 locally with `./cc docs`. Note that the administrators can update the
 [documentation site](https://community-collections.github.io) with the `./cc
 docs --push` command.
+
+## Motivation and Citation
+
+A recent PDF should be available [here](https://ssl.linklings.net/conferences/pearc/pearc19_program/views/includes/files/pap120s3-file1.pdf).
+
+Citing our work increases our visibility to our scientific research community!  
+Please include the following citation in related efforts:
+
+[K. Manalo, L. Baber, R. Bradley, Z. You, N. Zhang. "Community Collections: A Framework for Openly Sharing Software Stacks Across Research Computing Centers Using Singularity and Lmod". PEARC19, July 28 - August 1, 2019, Chicago, IL, USA. DOI: 10.1145/3332186.3332199](https://doi.org/10.1145/3332186.3332199)
