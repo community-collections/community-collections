@@ -416,12 +416,14 @@ class ModuleRequest(Handler):
 
         # prepare shell functions
         shell_calls = ''
+        shell_calls_names = []
         if ((calls and name not in calls) or not calls) and \
                 shell is not False:
             # +++ by default map the module name to singularity run
             # +++ allow the shell parameter to use a different alias
             shell_calls += shell_run % dict(
                 alias=name if shell is None else shell, flags=flags)
+            shell_calls_names.append(name if shell is None else shell)
         # +++ extra aliases
         elif calls:
             # a list of calls implies identical aliases otherwise use dict
@@ -430,7 +432,15 @@ class ModuleRequest(Handler):
             for k, v in calls.items():
                 shell_calls += shell_exec % \
                     dict(alias=k, target=v, flags=flags)
+                shell_calls_names.append(k)
         detail['shell_connections'] = shell_calls
+        # unset shell functions
+        if shell_calls_names:
+            unloader = 'execute{cmd="%s",modeA={"unload"}}' % ' && '.join([
+                'unset %s' % i for i in shell_calls_names])
+        else:
+            unloader = ''
+        detail['shell_connections_unload'] = unloader
 
         # extra bells and whistles for the modulefile
         if gpu:
