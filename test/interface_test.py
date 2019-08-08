@@ -43,3 +43,21 @@ def test_capable():
     # the cli arg matches the method call
     with patch.object(sys, 'argv', ['cc', 'capable']):
         Interface().capable()
+
+
+def test_docs():
+    """
+    Test the doc build command
+    """
+    # the cli arg matches the method call
+    with patch.object(sys, 'argv', ['cc', 'docs']):
+        Interface().docs()
+
+
+def test_clean():
+    """
+    Test the clean command
+    """
+    # the cli arg matches the method call
+    with patch.object(sys, 'argv', ['cc', 'clean', '--dryrun']):
+        Interface().clean(dryrun=True)
