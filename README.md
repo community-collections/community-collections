@@ -1,7 +1,7 @@
 # Community Collections (CC)
 A Research Computing Framework for Software Sharing
 
-CC allows users to keep up with the latest software on HPC systems and is also a reflection of the community's software interest in sharing common containerized software.  Powered by Singularity and Lmod on Linux systems.
+CC allows users to keep up with the latest software on HPC systems and is also a reflection of the community's software interests in sharing common containerized software.  Powered by Singularity and Lmod on Linux systems.
 
 ## Motivation and Citation
 
