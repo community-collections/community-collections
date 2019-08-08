@@ -4,12 +4,13 @@ Community Collections (CC) is an open-source high-performance computing (HPC)
 framework which provides a seamless interface between
 [Lmod](https://lmod.readthedocs.io/en/latest/) and [Singularity
 containers](https://sylabs.io/singularity/) so that users can download and
-deploy software in a Singularity container using the elegant module Lmod
+deploy software in a Singularity container using the elegant Lmod module
 system. The CC tool is useful for administrators who wish to install or detect
-both Lmod and Singularity, customize a list of containers from public sources such as
-[Docker Hub](https://hub.docker.com/), [Singularity
-Hub](https://singularity-hub.org/), and [Sylabs Cloud
-Library](https://cloud.sylabs.io/library).
+both Lmod and Singularity, customize a list of containers from public sources
+such as [Docker Hub](https://hub.docker.com/), [Singularity
+Hub](https://singularity-hub.org/), [Sylabs Cloud
+Library](https://cloud.sylabs.io/library), and [NGC
+Registry](https://ngc.nvidia.com/registry/),.
 
 Requirements
 ------------
@@ -67,10 +68,16 @@ What happens when you run "refresh"?
 
 Each time you run the `./cc refresh` command, it executes the following loop.
 
-1. Install the python environment to `./miniconda` and point the `./cc` executable to use that environment. This provides a consistent python environment.
+1. Install the python environment to `./miniconda` and point the `./cc`
+executable to use that environment. This provides a consistent python
+environment.
 2. Read the `cc.yaml` file or write the default one.
-3. Check for Singularity and Lmod and if they are not registered in `cc.yaml`. If they are not detected automatically, the code will ask you to edit the file. You can either provide the path to the existing installations, or more likely, ask the program to build them on the next "refresh".
-4. If both Lmod and Singularity are ready, the refresh command will automatically generate the module tree from the "whitelist" in `cc.yaml`.
+3. Check for Singularity and Lmod and if they are not registered in `cc.yaml`.
+If they are not detected automatically, the code will ask you to edit the file.
+You can either provide the path to the existing installations, or more likely,
+ask the program to build them on the next "refresh".
+4. If both Lmod and Singularity are ready, the refresh command will
+automatically generate the module tree from the "whitelist" in `cc.yaml`.
 5. The user can customize the whitelist and then run `./cc refresh` again to update the module tree.
 
 Case 1: A minimal system with root
@@ -114,7 +121,9 @@ status executing the following script
 [STATUS] temporary build directory is /tmp/tmp.sQGCSCsUJJ
 ~~~
 
-The output continues as the program installs a Miniconda environment and a set of supporting software. When it is done, you will see the following "error" message.
+The output continues as the program installs a Miniconda environment and a set
+of supporting software. When it is done, you will see the following "error"
+message.
 
 ~~~
 [CC] [STATUS] done building the environment
@@ -131,7 +140,8 @@ The output continues as the program installs a Miniconda environment and a set o
 [CC] [STATUS] writing cache.json
 ~~~
 
-At this point, CC has failed to find Singularity or Lmod. Edit the default `cc.yaml` file to authorize a build. This is our ***settings*** file.
+At this point, CC has failed to find Singularity or Lmod. Edit the default
+`cc.yaml` file to authorize a build. This is our ***settings*** file.
 
 ~~~
 # cc.yaml
@@ -289,15 +299,27 @@ Now CC is ready for use. Skip to the [usage section](#usage) to continue.
 Case 2: A minimal system without root
 -------------------------------------
 
-If you do not have root access on your machine, you can use Singularity if you have a kernel that provides uesr namespaces. You can install the code using the exact same procedure above, with only one difference. Your `cc.yaml` file will have a `sandbox` flag in the `singularity` entry. Set it if you lack root, and the code will use the `userns` and `sandbox` flags when building Singularity containers. These are described in the [Singularity documentation](https://sylabs.io/guides/3.3/user-guide/build_a_container.html). 
+If you do not have root access on your machine, you can use Singularity if you
+have a kernel that provides uesr namespaces. You can install the code using the
+exact same procedure above, with only one difference. Your `cc.yaml` file will
+have a `sandbox` flag in the `singularity` entry. Set it if you lack root, and
+the code will use the `userns` and `sandbox` flags when building Singularity
+containers. These are described in the [Singularity
+documentation](https://sylabs.io/guides/3.3/user-guide/build_a_container.html). 
 
-If your kernel does not provide usernamespaces, the code will refuse to build. A sandbox is really just a standard directory structure. The downside to using sandboxes is the large overhead caused by using many small files. This solution is nevertheless highly useful for users without root.
+If your kernel does not provide usernamespaces, the code will refuse to build.
+A sandbox is really just a standard directory structure. The downside to using
+sandboxes is the large overhead caused by using many small files. This solution
+is nevertheless highly useful for users without root.
 
 
 Case 3: An HPC resource with Singularity and Lmod
 -------------------------------------------------
 
-If you wish to use CC on a well-maintained HPC resource that already provides Singularity and Lmod, you can install it with the same procedure above. The code will detect these components and use the available versions instead of building its own.
+If you wish to use CC on a well-maintained HPC resource that already provides
+Singularity and Lmod, you can install it with the same procedure above. The
+code will detect these components and use the available versions instead of
+building its own.
 
 ~~~
 git clone http://github.com/community-collections/community-collections
@@ -305,7 +327,12 @@ cd community-collections
 ./cc refresh
 ~~~
 
-Note that you may need to run `module load singularity` beforehand to ensure that CC can find that program. It will use a separate alias module to access the singularity executable. The build procedure is very similar for the first two cases, however CC will rely on system-wide components (lua, tcl, etc) wherever possible. As with the previous cases, you can enable CC by preparing and sourcing a profile script with the following commands.
+Note that you may need to run `module load singularity` beforehand to ensure
+that CC can find that program. It will use a separate alias module to access
+the singularity executable. The build procedure is very similar for the first
+two cases, however CC will rely on system-wide components (lua, tcl, etc)
+wherever possible. As with the previous cases, you can enable CC by preparing
+and sourcing a profile script with the following commands.
 
 ~~~
 $ ./cc profile
@@ -317,7 +344,9 @@ source /home/rpb/community-collections/profile_cc.sh
 [CC] [STATUS] cache is unchanged
 ~~~
 
-The `profile_cc.sh` script ([see above](#profile)) adds a new moduletree to Lmod and sets the correct environment variables to use singularity. You can start using singularity by sourcing this script.
+The `profile_cc.sh` script ([see above](#profile)) adds a new moduletree to
+Lmod and sets the correct environment variables to use singularity. You can
+start using singularity by sourcing this script.
 
 ~~~
 source /path/to/community-collections/profile_cc.sh
@@ -327,7 +356,9 @@ source /path/to/community-collections/profile_cc.sh
 Usage
 -----
 
-Once CC is installed, it behaves almost exactly like a standard software module. The moduletree provided by CC will coeexist with your preexisting modules.
+Once CC is installed, it behaves almost exactly like a standard software
+module. The moduletree provided by CC will coeexist with your preexisting
+modules.
 
 ~~~
 $ module avail
@@ -348,9 +379,17 @@ Use "module spider" to find all possible modules.
 Use "module keyword key1 key2 ..." to search for all possible modules matching any of the "keys".
 ~~~
 
-The modules prefixed with `cc` provide the Miniconda environment (`cc/env`) and conda itself (`cc/conda`) for internal use by CC. The `cc/singularity` module will point to either a detected Singularity already installed on the machine (which might be available from a separate module) or the internal copy built by CC. You do not have to use these modules directly.
+The modules prefixed with `cc` provide the Miniconda environment (`cc/env`) and
+conda itself (`cc/conda`) for internal use by CC. The `cc/singularity` module
+will point to either a detected Singularity already installed on the machine
+(which might be available from a separate module) or the internal copy built by
+CC. You do not have to use these modules directly.
 
-The remaining modules are provided by the versions in the `cc.yaml` settings file. The property tag "(a)" indicates that they are ready to be downloaded, while `(r)` indicates that they have already been downloaded. When you load an "available" module for the first time, CC will call a `singularity pull` to download the image to `~/.cc_images`.
+The remaining modules are provided by the versions in the `cc.yaml` settings
+file. The property tag "(a)" indicates that they are ready to be downloaded,
+while `(r)` indicates that they have already been downloaded. When you load an
+"available" module for the first time, CC will call a `singularity pull` to
+download the image to `~/.cc_images`.
 
 ~~~
 ml R
@@ -386,12 +425,21 @@ INFO:    Build complete: /home/rpb/.singularity/cache/oci-tmp/d0b534c18ca77cff08
 [CC] the module is ready: R
 ~~~
 
-The code reports the size of the image because it is downloaded to the `~/.cc_image` folder and may count against a quota. After loading the module once, the code is marked "ready" on the module list and the next time you load the module, it will used the cached image. Most programs, like `R` are aliased directly to a shell function that calls singularity to start the container with the `R` command. It also pipes arguments into that command. Aside from the output above, the use of a singularity container is completely opaque to the user.
+The code reports the size of the image because it is downloaded to the
+`~/.cc_image` folder and may count against a quota. After loading the module
+once, the code is marked "ready" on the module list and the next time you load
+the module, it will used the cached image. Most programs, like `R` are aliased
+directly to a shell function that calls singularity to start the container with
+the `R` command. It also pipes arguments into that command. Aside from the
+output above, the use of a singularity container is completely opaque to the
+user.
 
 Configuration
 -------------
 
-CC is designed to provide "versionless" modules from the fairly simple `cc.yaml` settings file. Let us consider the `R` package described above. The following is the default `cc.yaml` after we have installed the pacakge.
+CC is designed to provide "versionless" modules from the fairly simple
+`cc.yaml` settings file. Let us consider the `R` package described above. The
+following is the default `cc.yaml` after we have installed the pacakge.
 
 ~~~
 # cc.yaml
@@ -428,15 +476,38 @@ whitelist:
     version: 1.12.3-gpu-py3
 ~~~
 
-**Versions** The `version` strings above allow you to include all versions after a certain point, however you can also serve a single, explicit version. When you use the greater-than operator e.g. `>=3.6`, Lmod will automatically load the latest version whenever you run e.g. `module load R`. To provide the latest versions, you can periodically run the `./cc refresh` command to update the module tree. This is preferable to the use of versions tagged "latest" from the source because it calls the docker API to check for an explicit version number.
+**Versions** The `version` strings above allow you to include all versions
+after a certain point, however you can also serve a single, explicit version.
+When you use the greater-than operator e.g. `>=3.6`, Lmod will automatically
+load the latest version whenever you run e.g. `module load R`. To provide the
+latest versions, you can periodically run the `./cc refresh` command to update
+the module tree. This is preferable to the use of versions tagged "latest" from
+the source because it calls the docker API to check for an explicit version
+number.
 
-**Sources** [DockerHub](https://hub.docker.com/) is the default source for the Singularity images, however this default is set in the `module_settings` section and can be changed. Nevertheless all modules in the example above explicitly cite their source in the recipe, which can be used to override the default. The `R` package above specifies DockerHub by using `source: docker`. Similarly, the `repo` flag allows the administrator to define the organization which provides a particular container.
+**Sources** [DockerHub](https://hub.docker.com/) is the default source for the
+Singularity images, however this default is set in the `module_settings`
+section and can be changed. Nevertheless all modules in the example above
+explicitly cite their source in the recipe, which can be used to override the
+default. The `R` package above specifies DockerHub by using `source: docker`.
+Similarly, the `repo` flag allows the administrator to define the organization
+which provides a particular container.
 
-**Shell functions** By default, the name of the section in the `whitelist` is mapped to a shell function that calls `singularity run` on the container. However, you can also add the `calls` section to provide either a list of additional shell function names, or a set of key-value pairs for mapping exterior shell functions (keys) to programs inside the container (values). You can disable the default mapping with `shell: false` to disable the use of a `tensorflow` shell function, since that program is invoked with `python` instead.
+**Shell functions** By default, the name of the section in the `whitelist` is
+mapped to a shell function that calls `singularity run` on the container.
+However, you can also add the `calls` section to provide either a list of
+additional shell function names, or a set of key-value pairs for mapping
+exterior shell functions (keys) to programs inside the container (values). You
+can disable the default mapping with `shell: false` to disable the use of a
+`tensorflow` shell function, since that program is invoked with `python`
+instead.
 
-**GPU Compatibility** The `gpu` flag causes the program to use the [Nvidia bindings](https://docs.nvidia.com/ngc/ngc-user-guide/singularity.html) available in Singularity.
+**GPU Compatibility** The `gpu` flag causes the program to use the [Nvidia
+bindings](https://docs.nvidia.com/ngc/ngc-user-guide/singularity.html)
+available in Singularity.
 
-**Image locations** Note that we automatically save the images to `~/.cc_yaml` for each user, however this can be configured with the `~/.cc_images` command.
+**Image locations** Note that we automatically save the images to `~/.cc_yaml`
+for each user, however this can be configured with the `~/.cc_images` command.
 
 Whitelist
 ---------
