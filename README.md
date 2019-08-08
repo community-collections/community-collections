@@ -1,6 +1,8 @@
 # Community Collections (CC)
 A Research Computing Framework for Software Sharing
 
+CC allows users to keep up with the latest software on HPC systems and is also a reflection of the community's software interest in sharing common containerized software.  Powered by Singularity and Lmod on Linux systems.
+
 ## Motivation and Citation
 
 A recent PDF should be available [here](https://ssl.linklings.net/conferences/pearc/pearc19_program/views/includes/files/pap120s3-file1.pdf).
