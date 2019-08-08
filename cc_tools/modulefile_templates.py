@@ -46,6 +46,7 @@ if mode()=="load" then
     -- interface to the container
 %%(shell_connections)s
 end
+%%(shell_connections_unload)s
 """
 
 modulefile_basic = modulefile_basic_base % dict(
