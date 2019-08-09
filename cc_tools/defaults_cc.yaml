@@ -61,4 +61,10 @@ whitelist:
     source: docker
     version: '>=19.05'
     gpu: true
-
+  golang:
+    calls:
+      - go
+    repo: golang
+    shell: false
+    source: docker
+    version: '>=1.11'
