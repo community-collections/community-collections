@@ -67,4 +67,4 @@ whitelist:
     repo: golang
     shell: false
     source: docker
-    version: '>=1.11'
+    version: '>=1.12.5'
