@@ -30,9 +30,7 @@ git clone http://github.com/community-collections/community-collections
 cd community-collections
 
 # optional: clean ups if you intend to start over
-./cc clean # only if you are developing and want to delete everything
-# clear your own cache if developing
-rm -rf ~/.singularity ~/.cc_images 
+./cc clean # only if you are developing and want to delete everything 
 
 # start here for the first time
 ./cc refresh
