@@ -230,6 +230,13 @@ class VersionCheck(Handler):
             op, version, suffix = re.match(regex_version, req).groups()
         return op, version, suffix
 
+    def _version_semantic(self, candidates, semver_type):
+        if semver_type == "MAJOR.MINOR":
+            regex_semver = r'^[^\.]*\.[^\.]*$'
+        else:
+            return candidates
+        return [line for line in candidates if re.match(regex_semver, line)]
+
     def _extract_number(self, result):
         if 'images' in result:
             # NGC result
@@ -278,7 +285,7 @@ class VersionCheck(Handler):
                     pass
         return candidates
 
-    def docker(self, name, docker_version, prefer_no_suffix=True):
+    def docker(self, name, docker_version, prefer_no_suffix=True, semantic_version=None):
         """Check the dockerhub registry."""
         # import these inside the function because they come with anaconda
         import urllib
@@ -306,6 +313,10 @@ class VersionCheck(Handler):
         # compare the requested version against the splits
         candidates = self._check_version(splits=splits, target=docker_version,
                                          prefer_no_suffix=prefer_no_suffix)
+        # filter out by semantic version
+        if semantic_version is not None:
+            candidates = self._version_semantic(candidates, semantic_version)
+
         return candidates
 
     def shub(self, shub_version):
@@ -330,7 +341,7 @@ class PrepModuleRequest(Handler):
         else:
             result['name'] = name
             if name in detail:
-                raise Exception('cannopt use "name" in a module request')
+                raise Exception('cannot use "name" in a module request')
             result.update(**detail)
         return result
 
@@ -350,8 +361,9 @@ class ModuleRequest(Handler):
 
     def singularity_pull(self, name, source=None,
                          version='latest', shell=None, calls=None,
-                         repo=None, gpu=False):
+                         repo=None, gpu=False, semantic_version=None):
         """Develop a singularity pull function."""
+
         use_sandbox = \
             self.cache['settings']['singularity'].get('sandbox', False)
         flags = []
@@ -393,7 +405,8 @@ class ModuleRequest(Handler):
             # note our Handler trick that uses the kwargs
             #   this may seem counterintuitive
             versions = VersionCheck(name=repo_name,
-                                    docker_version=version).solve
+                                    docker_version=version,
+                                    semantic_version=semantic_version).solve
             if not versions:
                 # better error message
                 raise Exception(('cannot satisfy dockerhub version: '
