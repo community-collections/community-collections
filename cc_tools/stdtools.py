@@ -10,7 +10,10 @@ import json
 import subprocess  # for Bash interface
 import io
 import time
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 import threading
 import inspect  # for Introspection
 import traceback  # for Tracer
