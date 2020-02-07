@@ -388,7 +388,7 @@ class LmodManager(Handler):
             lmod_cmd = os.environ['LMOD_CMD']
             split_path = \
                 ((lmod_cmd+os.path.sep).rstrip(os.path.sep)).split('/')
-            if split_path[-3:] == ['lmod', 'libexec', 'lmod']:
+            if split_path[-2:] == ['libexec', 'lmod']:
                 # the true path to lmod
                 return os.path.sep.join(split_path[:-3])
         # check for an orphaned local lmod at the default location
