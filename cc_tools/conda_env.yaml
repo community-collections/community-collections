@@ -7,7 +7,6 @@ dependencies:
   - pyyaml
   - pip
   - openssl
-  - intel::tcl
   - conda-forge::squashfs-tools
   - sphinx
   - git
