@@ -231,7 +231,7 @@ class LmodManager(Handler):
         # note that the conda installer is working now, so this is deprecated
         'https://sourceforge.net/projects/lmod/files/lua-5.1.4.9.tar.bz2')
     # get the latest release instead: https://github.com/TACC/Lmod/releases
-    url_lmod = 'http://sourceforge.net/projects/lmod/files/Lmod-8.0.tar.bz2'
+    url_lmod = 'http://sourceforge.net/projects/lmod/files/Lmod-8.3.tar.bz2'
     ERROR_NOTE = (
         'ERROR. '
         'Remove this note and follow these instructions to continue.')
