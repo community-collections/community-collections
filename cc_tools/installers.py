@@ -133,7 +133,7 @@ end
 
 # install singularity 3
 script_singularity3_install = """
-export VERSION=1.11 OS=linux ARCH=amd64
+export VERSION=1.13 OS=linux ARCH=amd64
 wget --progress=bar:force https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
 tar xf go$VERSION.$OS-$ARCH.tar.gz --checkpoint=.100 && echo
 cd go
@@ -144,6 +144,8 @@ mkdir -p $GOPATH/src/github.com/sylabs
 cd $GOPATH/src/github.com/sylabs
 git clone https://github.com/sylabs/singularity.git
 cd $GOPATH/src/github.com/sylabs/singularity
+# via: https://github.com/golang/dep/issues/2223
+go env -w GO111MODULE=off
 go get -u -v github.com/golang/dep/cmd/dep
 cd $GOPATH/src/github.com/sylabs/singularity
 mkdir -p %(prefix)s
