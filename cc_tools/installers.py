@@ -47,6 +47,8 @@ echo "[STATUS] temporary build directory is $tmpdir"
 # build here
 %%(script)s
 cd $here
+# protection against read-only go cache
+chmod u+w $tmpdir -R
 rm -rf $tmpdir
 """
 
@@ -133,7 +135,7 @@ end
 
 # install singularity 3
 script_singularity3_install = """
-export VERSION=1.13 OS=linux ARCH=amd64
+export VERSION=1.14 OS=linux ARCH=amd64
 wget --progress=bar:force https://dl.google.com/go/go$VERSION.$OS-$ARCH.tar.gz
 tar xf go$VERSION.$OS-$ARCH.tar.gz --checkpoint=.100 && echo
 cd go
